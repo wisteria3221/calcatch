@@ -1,0 +1,10 @@
+# clasp の認証情報（絶対にコミットしない）
+.clasprc.json
+
+# OS / エディタ
+.DS_Store
+.vscode/
+.idea/
+
+# Node
+node_modules/
