@@ -13,7 +13,7 @@ Google Workspace Marketplace での一般公開を目指している。オーナ
 | ドメイン | `wisteria.xyz`（ConoHa で取得・DNS 管理）。`calcatch` の CNAME → `wisteria3221.github.io` |
 | Cloud プロジェクト | `calcatch-wisteria`（名前 CalCatch、プロジェクト番号 358436174527）。請求先アカウントは未紐付け |
 | サポートメール | `calcatch-support@googlegroups.com`（Google グループ「CalCatch Support」、オーナー yusuke42@gmail.com。外部から投稿可・会話は管理者のみ閲覧） |
-| 公開用デプロイ | `AKfycbyIeh-7N6-rxpM5FFfAMDdhqFVhB6wZAprrxz_fFP0FdBEgv3SKy-vbKWqjLcg5WuI8Qg`（Marketplace SDK に指定。現在 version 1） |
+| 公開用デプロイ | `AKfycbyIeh-7N6-rxpM5FFfAMDdhqFVhB6wZAprrxz_fFP0FdBEgv3SKy-vbKWqjLcg5WuI8Qg`（Marketplace SDK に指定。現在 version 2） |
 | Search Console | `wisteria.xyz` をドメインプロパティとして所有確認済み（OAuth の承認済みドメイン用） |
 
 ## 構成
@@ -28,6 +28,7 @@ src/            Apps Script のソース（clasp の rootDir）
   appsscript.json  マニフェスト（スコープ・トリガー・高度なサービス）
 docs/           公開サイト（ホーム・プライバシーポリシー・利用規約、英日）
 tests/run.js    Apps Script のサービスを模擬した Node のテスト
+marketplace/    Marketplace SDK の設定値・掲載文（日英）・カードバナー
 ```
 
 Apps Script はすべての `.gs` を同じグローバルスコープで読み込む。トップレベルの `const` 名がファイル間で重複しないこと。
@@ -77,12 +78,12 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 - [x] API を有効化：Google Workspace Marketplace SDK（`appsmarket-component.googleapis.com`）、Google Calendar API（`calendar-json.googleapis.com`）
 - [x] OAuth 同意画面（Google Auth Platform）：アプリ名 CalCatch、外部公開、ホーム／プライバシー／規約の URL、承認済みドメイン `wisteria.xyz`、スコープ 6 つ
 - [x] OAuth 同意画面のスコープに `userinfo.email` を追加（計 7 つ）
-- [ ] 公開用デプロイを新しい版（`userinfo.email`・同意カードを含む）に更新
+- [x] 公開用デプロイを新しい版（`userinfo.email`・同意カードを含む）に更新（version 2）
 - [x] ユーザーサポートメール：Google グループ `calcatch-support@googlegroups.com` を作成、外部からの受信を確認済み
 - [x] アイコンを作成（`docs/images/`。封筒＋カレンダーのバッジ。96px 以上は `icon.svg`、48px 以下は線を太くした `icon-small.svg` から書き出し。マニフェストの logoUrl は `icon-48.png`）
 - [x] Apps Script プロジェクトを新しい Cloud プロジェクト（プロジェクト番号）に紐付け
 - [x] バージョンを固定したデプロイを作成（Marketplace SDK に指定する）
-- [ ] Marketplace SDK の設定と掲載情報（説明文・スクリーンショット、日英）
+- [ ] Marketplace SDK の設定と掲載情報（説明文・スクリーンショット、日英）。入力内容とカードバナーは `marketplace/` に用意済み。スクリーンショットは未撮影
 - [ ] OAuth アプリの確認を申請（スコープの使い方を示すデモ動画が必要。台本はこちらで用意）
 - [ ] Marketplace の審査に申請、指摘に対応
 
