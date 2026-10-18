@@ -22,6 +22,8 @@ The add-on is written in Google Apps Script and managed with [clasp](https://git
 ```sh
 npm install -g @google/clasp
 clasp login
+npm install       # test dependencies
+npm test          # run the add-on against mocked Apps Script services
 clasp push        # upload src/ to the Apps Script project
 ```
 
@@ -72,6 +74,8 @@ Google Apps Script で作成し、[clasp](https://github.com/google/clasp) で�
 ```sh
 npm install -g @google/clasp
 clasp login
+npm install       # テスト用の依存パッケージ
+npm test          # Apps Script のサービスを模擬した環境でテスト
 clasp push        # src/ の内容を Apps Script プロジェクトに反映
 ```
 

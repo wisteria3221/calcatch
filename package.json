@@ -1,0 +1,14 @@
+{
+  "name": "calcatch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gmail add-on that extracts events from emails with Gemini and adds them to Google Calendar",
+  "license": "MIT",
+  "scripts": {
+    "test": "node tests/run.js",
+    "push": "npm test && clasp push"
+  },
+  "devDependencies": {
+    "luxon": "^3.5.0"
+  }
+}
