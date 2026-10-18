@@ -17,7 +17,8 @@
     "https://www.googleapis.com/auth/calendar.events.owned",
     "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
     "https://www.googleapis.com/auth/script.external_request",
-    "https://www.googleapis.com/auth/script.locale"
+    "https://www.googleapis.com/auth/script.locale",
+    "https://www.googleapis.com/auth/userinfo.email"
   ],
   "urlFetchWhitelist": [
     "https://generativelanguage.googleapis.com/"

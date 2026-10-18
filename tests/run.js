@@ -41,6 +41,7 @@ const Utilities = {
     return dt.toJSDate();
   },
   sleep: () => {},
+  getUuid: (() => { let n = 0; return () => `uuid-${++n}`; })(),
 };
 
 function props() {
@@ -65,6 +66,8 @@ const state = {
   fetchLog: [],
   calendarEvents: [],    // existing events on primary
   inserted: [],
+  userEmail: 'me@example.com',
+  locked: false,
 };
 
 const message = {
@@ -79,7 +82,11 @@ const sandbox = {
   console,
   CardService,
   Utilities,
-  Session: { getScriptTimeZone: () => 'Asia/Tokyo' },
+  Session: { getScriptTimeZone: () => 'Asia/Tokyo', getActiveUser: () => ({ getEmail: () => state.userEmail }) },
+  LockService: { getUserLock: () => ({
+    tryLock: () => { if (state.locked) return false; state.locked = true; return true; },
+    releaseLock: () => { state.locked = false; },
+  }) },
   PropertiesService: { getUserProperties: () => state.userProps },
   CacheService: { getUserCache: () => state.cache },
   GmailApp: { setCurrentMessageAccessToken: () => {}, getMessageById: () => message },
@@ -126,6 +133,9 @@ const ev = (locale, extra = {}) => Object.assign({
   gmail: { messageId: 'm1', accessToken: 't' },
   parameters: { messageId: 'm1' },
 }, extra);
+// 登録ボタンのイベント。表示中のカードに埋め込まれた token（＝最後に保存した候補の token）を付ける
+const pendingToken = () => { const p = state.cache._m['pending:m1']; return p ? JSON.parse(p).token : ''; };
+const regEv = (locale, extra) => Object.assign(ev(locale, extra), { parameters: { messageId: 'm1', token: pendingToken() } });
 const call = (name, e) => { sandbox.__e = e; return vm.runInContext(`${name}(__e)`, sandbox); };
 
 // 1. i18n キーが ja / en で揃っている
@@ -158,7 +168,14 @@ state.geminiResponses.push(geminiOk([{ title: '勉強会', timeEvidence: '10月2
 res = call('onSaveSettings', ev('ja', { commonEventObject: { userLocale: 'ja', formInputs: {
   api_key: { stringInputs: { value: [' GOODKEY1234 '] } }, model_choice: { stringInputs: { value: ['gemini-flash-latest'] } } } } }));
 ok(state.userProps._m.GEMINI_API_KEY === 'GOODKEY1234', 'valid key saved (trimmed)');
-ok(cardText(res).includes('popToRoot') && cardText(res).includes('見つかった予定'), 'after save → back to extraction card');
+// 初回は、メールを送る前に送信内容への同意を求める（同意するまで Gemini に本文を送らない）
+ok(cardText(res).includes('popToRoot') && cardText(res).includes('メールの送信について') && cardText(res).includes('onAcceptDataConsent'),
+  'after save → consent card before sending the email');
+ok(state.fetchLog.length === 2, 'no extraction call before consent (only the two key checks)');
+ok(cardText(res).includes('無料枠に個人情報や機密情報を送らない') && cardText(res).includes('https://calcatch.wisteria.xyz/ja/privacy.html'),
+  'consent card explains free-tier terms and links the privacy policy');
+res = call('onAcceptDataConsent', ev('ja'));
+ok(state.userProps._m.DATA_CONSENT === '1' && cardText(res).includes('見つかった予定'), 'agree → consent saved, back to extraction card');
 // allDay=true でも根拠に時刻があれば時刻付きになる
 ok(cardText(res).includes('2026/10/25（日）14:00 – 16:00'), 'time recovered from evidence (14:00–16:00), ja format with weekday');
 ok(state.fetchLog[0].key === 'BADKEY' && state.fetchLog.slice(1).every((f) => f.key === 'GOODKEY1234'), 'Gemini called with the key being validated, then the saved user key');
@@ -177,12 +194,12 @@ ok(state.fetchLog.length === callsBefore, 'second open uses cache (no Gemini cal
 // 7. 登録
 state.calendarEvents = [];
 call('onGmailMessageOpen', ev('ja'));
-res = call('onRegisterEvents', ev('ja', { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } }));
+res = call('onRegisterEvents', regEv('ja', { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } }));
 const ins = state.inserted[0];
 ok(ins && ins.cal === 'primary' && ins.res.start.timeZone === 'Asia/Tokyo' && ins.res.summary === '勉強会', 'event inserted to primary with tz');
-ok(ins && ins.res.description.includes('元のメール: https://mail.google.com/mail/u/0/#all/thread123'), 'description has mail link');
+ok(ins && ins.res.description.includes('元のメール: https://mail.google.com/mail/u/me@example.com/#all/thread123'), 'description has mail link for the signed-in account');
 ok(cardText(res).includes('1件を登録しました') && cardText(res).includes('setOpenLink'), 'result card with link');
-res = call('onRegisterEvents', ev('ja', { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } }));
+res = call('onRegisterEvents', regEv('ja', { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } }));
 ok(cardText(res).includes('有効期限'), 'second register blocked (pending cleared)');
 
 // 8. 混雑 → 予備モデルで抽出し、補足を表示
@@ -210,6 +227,7 @@ card = call('onHomepage', { commonEventObject: { userLocale: 'en' } });
 ok(cardText(card).includes('Open an email'), 'homepage (en)');
 res = call('onRemoveApiKey', ev('ja'));
 ok(!state.userProps._m.GEMINI_API_KEY && cardText(res).includes('削除しました'), 'API key removed');
+ok(!state.userProps._m.DATA_CONSENT, 'removing the key also clears the consent');
 
 // 12. 時刻読み取り
 const x = vm.runInContext('extractTimes_', sandbox);
@@ -218,6 +236,7 @@ ok(x('所要3時間').length === 0, 'duration not treated as time');
 
 // 13. 設定画面のリンクが表示言語に合わせたページを指す
 state.userProps._m.GEMINI_API_KEY = 'K';
+state.userProps._m.DATA_CONSENT = '1';
 card = call('onOpenSettings', ev('ja'));
 ok(cardText(card).includes('https://calcatch.wisteria.xyz/ja/privacy.html') && cardText(card).includes('https://calcatch.wisteria.xyz/ja/terms.html'), 'settings links → Japanese pages (ja)');
 card = call('onOpenSettings', ev('en-US'));
@@ -288,16 +307,17 @@ state.geminiResponses.push(geminiOk([{ title: '勉強会', timeEvidence: '10月2
 call('onReextractEvents', ev('ja'));
 const realInsert = sandbox.Calendar.Events.insert;
 sandbox.Calendar.Events.insert = () => { throw new Error('backend error'); };
-res = call('onRegisterEvents', ev('ja', { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } }));
+res = call('onRegisterEvents', regEv('ja', { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } }));
 ok(cardText(res).includes('登録できませんでした') && !cardText(res).includes('0件を登録'), 'all inserts failed → failure notice');
 sandbox.Calendar.Events.insert = realInsert;
-res = call('onRegisterEvents', ev('ja', { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } }));
+res = call('onRegisterEvents', regEv('ja', { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } }));
 ok(cardText(res).includes('1件を登録しました'), 'pending kept after total failure, retry succeeds');
 
 // 21. 重複チェックはカレンダーごとに 1 回だけ一覧を取得する
 let listCalls = 0;
 const realList = sandbox.Calendar.Events.list;
-sandbox.Calendar.Events.list = (...a) => { listCalls++; return realList(...a); };
+let listOpts = null;
+sandbox.Calendar.Events.list = (...a) => { listCalls++; listOpts = a[1]; return realList(...a); };
 state.geminiResponses.push(geminiOk([
   { title: 'A', timeEvidence: '10/25 10:00', startDate: '2026-10-25', allDay: false, startTime: '10:00' },
   { title: 'B', timeEvidence: '10/27 10:00', startDate: '2026-10-27', allDay: false, startTime: '10:00' },
@@ -305,6 +325,8 @@ state.geminiResponses.push(geminiOk([
 ]));
 call('onReextractEvents', ev('ja'));
 ok(listCalls === 1, `one Events.list call per calendar for 3 events: ${listCalls}`);
+ok(listOpts.maxResults === 2500 && ['status', 'summary', 'description', 'start', 'end'].every((f) => listOpts.fields.includes(f)),
+  `Events.list asks for large pages and only the fields it uses: ${listOpts.fields}`);
 sandbox.Calendar.Events.list = realList;
 
 // 22. 開演・開始などの時刻は終了時刻にしない（Gemini が endTime に入れてきても外す）
@@ -341,6 +363,74 @@ ok(state.userProps._m.DEFAULT_DURATION_HOURS === '3', 'invalid duration ignored'
 state.geminiResponses.push(geminiOk([{ title: '勉強会', timeEvidence: '10月25日 14:00〜16:00', startDate: '2026-10-25', allDay: false, startTime: '14:00', endTime: '16:00' }]));
 card = call('onReextractEvents', ev('ja'));
 ok(cardText(card).includes('2026/10/25（日）14:00 – 16:00'), 'written end time is not changed by the duration setting');
+
+// 24. 古いカード（別の画面で再抽出する前のもの）からは登録しない
+const select0 = { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } };
+state.calendarEvents = [];
+state.geminiResponses.push(geminiOk([{ title: '古い候補', timeEvidence: '10/25 10:00', startDate: '2026-10-25', allDay: false, startTime: '10:00' }]));
+call('onReextractEvents', ev('ja'));
+const staleToken = pendingToken();
+state.geminiResponses.push(geminiOk([{ title: '新しい候補', timeEvidence: '10/26 10:00', startDate: '2026-10-26', allDay: false, startTime: '10:00' }]));
+call('onReextractEvents', ev('ja'));
+const insertedBefore = state.inserted.length;
+res = call('onRegisterEvents', Object.assign(ev('ja', select0), { parameters: { messageId: 'm1', token: staleToken } }));
+ok(cardText(res).includes('有効期限') && state.inserted.length === insertedBefore, 'stale card cannot register (token mismatch)');
+res = call('onRegisterEvents', regEv('ja', select0));
+ok(state.inserted.length === insertedBefore + 1 && state.inserted[insertedBefore].res.summary === '新しい候補', 'current card registers its own event');
+
+// 25. 終了時刻が開始より前（日をまたぐ）なら翌日の終了にする。長すぎるものは読み違いとして既定の長さ
+ok(minutesOf({ timeEvidence: '22:00〜翌1:00', startTime: '22:00', endTime: '01:00' }) === 180, 'overnight end (22:00–01:00) is next day');
+ok(minutesOf({ timeEvidence: '13:00〜03:00', startTime: '13:00', endTime: '03:00' }) === 120, 'implausibly long overnight end falls back to default length');
+
+// 26. 読めないカレンダーがあっても、ほかのカレンダーで重複を検出する
+const realCalList = sandbox.Calendar.CalendarList.list;
+const realEvList = sandbox.Calendar.Events.list;
+sandbox.Calendar.CalendarList.list = () => ({ items: [{ id: 'broken' }, { id: 'primary' }] });
+sandbox.Calendar.Events.list = (id, opts) => { if (id === 'broken') throw new Error('forbidden'); return realEvList(id, opts); };
+state.calendarEvents = [{ summary: '勉強会', start: { dateTime: '2026-10-25T14:00:00+09:00' }, end: { dateTime: '2026-10-25T16:00:00+09:00' }, description: '' }];
+state.geminiResponses.push(geminiOk([{ title: '勉強会', timeEvidence: '10月25日 14:00〜16:00', startDate: '2026-10-25', allDay: false, startTime: '14:00', endTime: '16:00' }]));
+card = call('onReextractEvents', ev('ja'));
+ok(cardText(card).includes('登録済みの可能性が高い'), 'duplicate still detected when one calendar fails');
+sandbox.Calendar.CalendarList.list = realCalList;
+sandbox.Calendar.Events.list = realEvList;
+
+// 27. 新しいキーを保存したら同意を取り直す。同意するまでメールの内容を送らない
+state.geminiResponses.push({ status: 200, body: {} });  // checkGemini_
+res = call('onSaveSettings', ev('ja', { commonEventObject: { userLocale: 'ja', formInputs: {
+  api_key: { stringInputs: { value: ['NEWKEY5678'] } }, model_choice: { stringInputs: { value: ['gemini-flash-latest'] } } } } }));
+ok(!state.userProps._m.DATA_CONSENT && cardText(res).includes('メールの送信について'), 'new key → consent asked again');
+const fetchesBeforeOpen = state.fetchLog.length;
+card = call('onReextractEvents', ev('en-US'));
+ok(cardText(card).includes('About sending your email') && cardText(card).includes('Agree and continue') && state.fetchLog.length === fetchesBeforeOpen,
+  'no consent → consent card (en), Gemini not called');
+state.userProps._m.DATA_CONSENT = '1';
+
+// 28. 元のメールへのリンク：メールアドレスが取れないときはアカウント番号 0 にする
+ok(vm.runInContext(`mailLink_('t1')`, sandbox) === 'https://mail.google.com/mail/u/me@example.com/#all/t1', 'mail link uses the account email');
+state.userEmail = '';
+ok(vm.runInContext(`mailLink_('t1')`, sandbox) === 'https://mail.google.com/mail/u/0/#all/t1', 'mail link falls back to u/0 without an email');
+state.userEmail = 'me@example.com';
+
+// 29. Pro は選択肢に出さない
+card = call('onOpenSettings', ev('ja'));
+ok(!cardText(card).includes('gemini-pro-latest') && !cardText(card).includes('高精度'), 'Pro model is not offered');
+
+// 30. 二重登録の防止：登録の前に候補を確保し、処理中の押下は待たせる
+state.calendarEvents = [];
+state.geminiResponses.push(geminiOk([{ title: '連打テスト', timeEvidence: '10/25 10:00', startDate: '2026-10-25', allDay: false, startTime: '10:00' }]));
+call('onReextractEvents', ev('ja'));
+const realInsert2 = sandbox.Calendar.Events.insert;
+let pendingDuringInsert = 'unset';
+sandbox.Calendar.Events.insert = (r, c) => { pendingDuringInsert = state.cache._m['pending:m1']; return realInsert2(r, c); };
+const insertedBefore2 = state.inserted.length;
+state.locked = true;  // 別の登録処理が実行中
+res = call('onRegisterEvents', regEv('ja', select0));
+ok(cardText(res).includes('登録の処理中') && state.inserted.length === insertedBefore2, 'register while another is running → busy notice, nothing added');
+state.locked = false;
+res = call('onRegisterEvents', regEv('ja', select0));
+ok(state.inserted.length === insertedBefore2 + 1 && pendingDuringInsert === undefined, 'candidates are claimed before inserting');
+ok(!state.locked, 'lock released after registering');
+sandbox.Calendar.Events.insert = realInsert2;
 
 const total = (process.exitCode === 1) ? 'FAILED' : 'ALL PASSED';
 console.log(`\n${total}`);

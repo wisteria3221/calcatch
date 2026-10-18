@@ -12,6 +12,7 @@ const RETRY_DELAYS_MS = [1000, 3000];  // 同じモデルでの再試行前の�
 // 一般的なエラー画面になってしまうため、余裕を持って打ち切り「混雑」の案内を出す
 const GEMINI_TIME_BUDGET_MS = 18000;
 const MAX_BODY_CHARS = 20000;          // Gemini に渡す本文の上限文字数
+const MAX_OVERNIGHT_HOURS = 12;        // 終了時刻が開始より前のとき、翌日の終了とみなす長さの上限
 
 const EVENT_SCHEMA = {
   type: 'OBJECT',
@@ -276,6 +277,13 @@ function normalizeEvent_(ev, tz, durationHours) {
   } else {
     start = Utilities.parseDate(`${ev.startDate} ${startTime}`, tz, 'yyyy-MM-dd HH:mm');
     end = endTime ? Utilities.parseDate(`${endDate} ${endTime}`, tz, 'yyyy-MM-dd HH:mm') : null;
+    // 「22:00〜翌1:00」のように終了日が書かれず終了時刻が開始より前なら、翌日の終了とみなす
+    // （ただし長すぎる場合は読み違いとして扱う）
+    if (end && end <= start && endDate === ev.startDate) {
+      const nextDay = Utilities.parseDate(
+        `${Utilities.formatDate(addDays_(start, 1, tz), tz, 'yyyy-MM-dd')} ${endTime}`, tz, 'yyyy-MM-dd HH:mm');
+      if (nextDay.getTime() - start.getTime() <= MAX_OVERNIGHT_HOURS * HOUR_MS) end = nextDay;
+    }
     if (!end || end <= start) {
       // 終了時刻がない（または開始より前の）ときは、開始から設定の長さだけ後にする
       endInferred = true;

@@ -29,6 +29,29 @@ function buildSetupCard_(messageId) {
     .build();
 }
 
+/**
+ * メール本文を初めて Gemini に送る前に出す、送信内容についての同意カード。
+ * 同意するまでメールの内容は送らない
+ */
+function buildConsentCard_(messageId) {
+  return CardService.newCardBuilder()
+    .setHeader(CardService.newCardHeader().setTitle(t_('dataConsentTitle')))
+    .addSection(CardService.newCardSection()
+      .addWidget(CardService.newTextParagraph().setText(escapeHtml_(t_('dataConsentText')).replace(/\n/g, '<br>')))
+      .addWidget(CardService.newTextButton()
+        .setText(t_('privacyPolicy'))
+        .setOpenLink(CardService.newOpenLink().setUrl(siteUrl_('privacy.html'))))
+      .addWidget(buildOpenSettingsButton_(messageId, false)))
+    .setFixedFooter(CardService.newFixedFooter().setPrimaryButton(CardService.newTextButton()
+      .setText(t_('dataConsentAccept'))
+      .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+      .setOnClickAction(CardService.newAction()
+        .setFunctionName('onAcceptDataConsent')
+        .setParameters({ messageId: messageId })
+        .setLoadIndicator(CardService.LoadIndicator.SPINNER))))
+    .build();
+}
+
 /** 予定が見つからなかったときや、エラーのときに出すカード */
 function buildMessageCard_(messageId, title, text, buttonLabel) {
   return CardService.newCardBuilder()
@@ -40,7 +63,7 @@ function buildMessageCard_(messageId, title, text, buttonLabel) {
 }
 
 /** 抽出結果のカード */
-function buildEventsCard_(messageId, events, tz, note) {
+function buildEventsCard_(messageId, token, events, tz, note) {
   const card = CardService.newCardBuilder()
     .setHeader(CardService.newCardHeader()
       .setTitle(t_('foundTitle'))
@@ -100,7 +123,7 @@ function buildEventsCard_(messageId, events, tz, note) {
     .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
     .setOnClickAction(CardService.newAction()
       .setFunctionName('onRegisterEvents')
-      .setParameters({ messageId: messageId })
+      .setParameters({ messageId: messageId, token: token })
       .setLoadIndicator(CardService.LoadIndicator.SPINNER));
 
   card.setFixedFooter(CardService.newFixedFooter()
@@ -242,10 +265,11 @@ function buildReextractButton_(messageId, label) {
       .setLoadIndicator(CardService.LoadIndicator.SPINNER));
 }
 
-function buildOpenSettingsButton_(messageId) {
+/** 「設定を開く」ボタン。filled が false なら目立たない形にする（ほかに主となるボタンがあるとき） */
+function buildOpenSettingsButton_(messageId, filled) {
   return CardService.newTextButton()
     .setText(t_('openSettings'))
-    .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+    .setTextButtonStyle(filled === false ? CardService.TextButtonStyle.TEXT : CardService.TextButtonStyle.FILLED)
     .setOnClickAction(CardService.newAction()
       .setFunctionName('onOpenSettingsFromCard')
       .setParameters({ messageId: messageId || '' }));

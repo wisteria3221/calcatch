@@ -19,7 +19,7 @@
 
   <main>
     <h1>Privacy Policy</h1>
-    <p class="meta">Last updated: October 18, 2026</p>
+    <p class="meta">Last updated: October 19, 2026</p>
 
     <p>This Privacy Policy explains how CalCatch (“the add-on”), a Gmail add-on developed by wisteria3221 (“the developer”), accesses, uses, stores and shares data. CalCatch runs on Google Apps Script within your Google account. The developer does not operate any server for CalCatch and does not receive your data.</p>
 
@@ -51,6 +51,11 @@
         <td>To show the add-on in Japanese or English.</td>
         <td><code>script.locale</code></td>
       </tr>
+      <tr>
+        <td>Your email address</td>
+        <td>Only when you add events, to make the link to the original email (written in the event description) open in the right Gmail account when you are signed in to several accounts. It is not stored or sent anywhere else.</td>
+        <td><code>userinfo.email</code></td>
+      </tr>
     </table>
     <p>The add-on also uses <code>script.external_request</code> to call the Gemini API.</p>
 
@@ -58,12 +63,14 @@
     <p>The data above is used only to provide CalCatch’s features: extracting events from the open email, checking for duplicates, and adding the events you select to your calendar. It is not used for advertising, profiling, or any other purpose.</p>
 
     <h2>3. Sharing with the Google Gemini API</h2>
-    <p>To extract events, the body text, subject, sender and received date of the open email are sent to the Google Gemini API (<code>generativelanguage.googleapis.com</code>) using <strong>the Gemini API key that you provide</strong>. This transfer is governed by the Gemini API terms that apply to your API key. On the Gemini API free tier, Google may use the content you send to improve its products; with a paid-tier key it does not. Choose the type of key that fits your needs.</p>
+    <p>To extract events, the body text, subject, sender and received date of the open email are sent to the Google Gemini API (<code>generativelanguage.googleapis.com</code>) using <strong>the Gemini API key that you provide</strong>. This transfer is governed by the Gemini API terms that apply to your API key.</p>
+    <p>On the Gemini API free tier, Google uses the content you send to improve its products (including AI models), and human reviewers may read it; the Gemini API terms ask users not to submit personal or confidential information to the free tier. With a paid-tier key (billing enabled), the content is not used to improve Google products. <strong>Because emails often contain personal information, we strongly recommend a paid-tier key.</strong></p>
+    <p>Before the first email is sent, CalCatch shows this information and sends nothing until you agree. You are asked again whenever you save a new API key.</p>
     <p>No data is shared with the developer or with any other third party.</p>
 
     <h2>4. Storage and retention</h2>
     <ul>
-      <li><strong>Your Gemini API key and model choice</strong> are stored in Apps Script User Properties, which belong to your Google account and are not accessible to other users. The full key is never displayed after it is saved.</li>
+      <li><strong>Your Gemini API key, model choice and default event length</strong> are stored in Apps Script User Properties, which belong to your Google account and are not accessible to other users. The full key is never displayed after it is saved.</li>
       <li><strong>Extracted event candidates</strong> are kept in the Apps Script user cache for up to 6 hours so that reopening the same email is fast and does not call the Gemini API again. They are then deleted automatically.</li>
       <li>Email content is not stored by the add-on.</li>
       <li>Events you add stay in your Google Calendar until you delete them.</li>

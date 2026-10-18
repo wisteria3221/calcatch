@@ -59,9 +59,12 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 
 - 開いた瞬間に抽出する（ボタンなし）。抽出結果はメール×モデルごとに CacheService へ 6 時間キャッシュ。カレンダーとの重複チェックは毎回最新で行う。
 - 重複の警告は赤 1 色。「登録済みの可能性が高い」「似た予定がある」の違いは文言で表す。重複候補は最初からチェックを外す。
-- モデルは設定画面で選択（標準 `gemini-flash-latest` / 軽量 `gemini-flash-lite-latest` / 高精度 `gemini-pro-latest` / 直接入力）。画面にはエイリアス ID ではなく「標準」などの名前を出す。混雑時は軽量モデルに切り替え、その旨を表示。
+- モデルは設定画面で選択（標準 `gemini-flash-latest` / 軽量 `gemini-flash-lite-latest` / 直接入力）。Pro は応答が遅くアドオンの実行時間の上限（約 30 秒）を超えやすいため選択肢から外した。画面にはエイリアス ID ではなく「標準」などの名前を出す。混雑時は軽量モデルに切り替え、その旨を表示。
 - API キーは利用者自身のもの（開発者のキーを共有で使う処理はない）。
 - カレンダーのスコープは `calendar.events.owned` + `calendar.calendarlist.readonly`（全権限の `calendar` は使わない）。
+- 元のメールへのリンクは `https://mail.google.com/mail/u/<メールアドレス>/#all/<threadId>`（複数アカウント対策）。そのため `userinfo.email` を使う。
+- メール本文を初めて Gemini に送る前に、無料枠での扱い（製品改善に使われる・規約上個人情報を送らないよう求められている）を示す同意カードを出す。同意はユーザープロパティ `DATA_CONSENT` に文面の版を保存し、API キーを保存・削除したら取り直す。有料枠のキーを強く推奨（必須にはしない）。
+- 登録は `LockService` のユーザーロックで 1 件ずつ処理し、登録前に候補をキャッシュから外して二重登録を防ぐ。
 - 公開サイトとプライバシーポリシーは GitHub Pages（独自ドメインのサブドメイン）。問い合わせ先はサポートメール（Google グループ）と GitHub Issues。
 
 ## 公開までの残り作業
@@ -73,6 +76,8 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 - [ ] 請求先アカウントを紐付け（オーナーが判断・実行）。予算アラートを設定
 - [x] API を有効化：Google Workspace Marketplace SDK（`appsmarket-component.googleapis.com`）、Google Calendar API（`calendar-json.googleapis.com`）
 - [x] OAuth 同意画面（Google Auth Platform）：アプリ名 CalCatch、外部公開、ホーム／プライバシー／規約の URL、承認済みドメイン `wisteria.xyz`、スコープ 6 つ
+- [x] OAuth 同意画面のスコープに `userinfo.email` を追加（計 7 つ）
+- [ ] 公開用デプロイを新しい版（`userinfo.email`・同意カードを含む）に更新
 - [x] ユーザーサポートメール：Google グループ `calcatch-support@googlegroups.com` を作成、外部からの受信を確認済み
 - [x] アイコンを作成（`docs/images/`。封筒＋カレンダーのバッジ。96px 以上は `icon.svg`、48px 以下は線を太くした `icon-small.svg` から書き出し。マニフェストの logoUrl は `icon-48.png`）
 - [x] Apps Script プロジェクトを新しい Cloud プロジェクト（プロジェクト番号）に紐付け
@@ -85,4 +90,4 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 
 - Apps Script 上のメインファイル名は「コード.gs」のままになっている。最初の `clasp push` で `Code.gs` に置き換わる。
 - アドオンのメニュー（universal action）のラベルはマニフェストで多言語化できないため「Settings / 設定」としている。
-- Gemini の無料枠では送信内容が Google のサービス改善に使われうるため、設定画面とプライバシーポリシーで告知している。
+- Gemini の無料枠では送信内容が Google のサービス改善に使われるため、初回の同意カード・設定画面・サイト・プライバシーポリシーで告知している。

@@ -23,6 +23,16 @@ const MESSAGES = {
       'Google AI Studio で API キーを発行し、設定画面に貼り付けてください。',
     getApiKey: 'API キーを発行する（Google AI Studio）',
 
+    // 送信内容についての同意（初回）
+    dataConsentTitle: 'メールの送信について',
+    dataConsentText: 'CalCatch は、開いたメールの本文・件名・差出人・受信日時を、あなたの API キーで Google の Gemini API に送信して予定を読み取ります。\n\n' +
+      'Gemini API の無料枠では、送信した内容が Google の製品改善（AI モデルの改善を含む）に使われ、人が読む場合もあります。' +
+      'Gemini API の利用規約では、無料枠に個人情報や機密情報を送らないよう求めています。\n\n' +
+      'メールには個人情報が含まれることが多いため、課金を有効にした API キー（有料枠）の使用を強くおすすめします。' +
+      '有料枠では、送信した内容は製品改善に使われません。\n\n' +
+      '内容を確認し、同意する場合だけ続けてください。同意するまで、メールの内容は送信しません。',
+    dataConsentAccept: '同意して続ける',
+
     // 抽出結果
     foundTitle: '見つかった予定',
     foundSubtitle: '{count}件・登録するものにチェックを入れてください',
@@ -41,6 +51,7 @@ const MESSAGES = {
     // 登録
     expired: '候補の有効期限が切れました。もう一度抽出してください',
     selectSome: '登録する予定を選んでください',
+    registerBusy: '登録の処理中です。しばらく待ってからもう一度お試しください',
     addedCount: '{count}件を登録しました',
     addedPartial: '{count}件を登録しました（{failed}件は失敗）',
     addFailedAll: '登録できませんでした。時間をおいてもう一度お試しください',
@@ -58,16 +69,15 @@ const MESSAGES = {
     removeApiKey: 'API キーを削除',
     apiKeyRemoved: 'API キーを削除しました',
     dataNotice: 'メール本文は、あなたの API キーを使って Gemini API に送信されます。' +
-      'Gemini API の無料枠では、送信した内容が Google のサービス改善に使われる場合があります。' +
-      '気になる場合は、課金を有効にした API キー（有料枠）を使ってください。',
+      'Gemini API の無料枠では、送信した内容が Google の製品改善に使われ、人が読む場合もあります。' +
+      'メールには個人情報が含まれることが多いため、課金を有効にした API キー（有料枠）をおすすめします。',
     modelSection: 'Gemini のモデル',
     modelSelect: '使用するモデル',
     modelCustom: 'その他（モデル名を直接入力）',
     customModelTitle: 'モデル名（「その他」を選んだときだけ使います）',
     customModelHint: '例: gemini-2.5-flash',
     currentModel: '現在の設定: {model}',
-    modelNote: '高精度モデルは応答に時間がかかり、無料枠では使えない場合があります。' +
-      '選んだモデルが混雑しているときは、軽量モデルで抽出します。',
+    modelNote: '選んだモデルが混雑しているときは、軽量モデルで抽出します。',
     durationSection: '予定の長さ',
     durationSelect: '終了時刻が書かれていないとき',
     durationOneHour: '1時間',
@@ -88,10 +98,8 @@ const MESSAGES = {
     // モデル
     modelStandard: '標準',
     modelLite: '軽量',
-    modelPro: '高精度',
     modelStandardLabel: '標準（おすすめ）：速さと精度のバランスがよい',
     modelLiteLabel: '軽量：速くて安いが、精度はやや落ちる',
-    modelProLabel: '高精度：精度は高いが、遅くて料金も高い',
 
     // Gemini のエラー
     errNoKey: 'API キーが設定されていません。メニューの「設定」から設定してください。',
@@ -119,6 +127,15 @@ const MESSAGES = {
       'Create an API key in Google AI Studio and paste it in Settings.',
     getApiKey: 'Get an API key (Google AI Studio)',
 
+    dataConsentTitle: 'About sending your email',
+    dataConsentText: 'To find events, CalCatch sends the body, subject, sender and received date of the email you open to Google’s Gemini API using your API key.\n\n' +
+      'On the Gemini API free tier, content you send is used to improve Google products (including AI models) and may be read by human reviewers. ' +
+      'The Gemini API terms ask you not to submit personal or confidential information to the free tier.\n\n' +
+      'Because emails often contain personal information, we strongly recommend an API key with billing enabled (paid tier). ' +
+      'On the paid tier, content you send is not used to improve Google products.\n\n' +
+      'Continue only if you have read and agree to this. Nothing from your email is sent until you agree.',
+    dataConsentAccept: 'Agree and continue',
+
     foundTitle: 'Events found',
     foundSubtitle: '{count} found · check the ones to add',
     fallbackNote: 'The selected model ({selected}) was busy, so the {used} model was used.',
@@ -135,6 +152,7 @@ const MESSAGES = {
 
     expired: 'These results have expired. Please extract again.',
     selectSome: 'Select at least one event to add.',
+    registerBusy: 'Still adding events. Please wait a moment and try again.',
     addedCount: 'Added {count} event(s)',
     addedPartial: 'Added {count} event(s); {failed} failed',
     addFailedAll: 'Couldn’t add the events. Please try again later.',
@@ -151,16 +169,15 @@ const MESSAGES = {
     removeApiKey: 'Remove API key',
     apiKeyRemoved: 'API key removed.',
     dataNotice: 'Email content is sent to the Gemini API using your API key. ' +
-      'On the Gemini API free tier, content you send may be used to improve Google products. ' +
-      'If that concerns you, use an API key with billing enabled (paid tier).',
+      'On the Gemini API free tier, content you send is used to improve Google products and may be read by human reviewers. ' +
+      'Because emails often contain personal information, we recommend an API key with billing enabled (paid tier).',
     modelSection: 'Gemini model',
     modelSelect: 'Model',
     modelCustom: 'Other (enter a model name)',
     customModelTitle: 'Model name (used only when “Other” is selected)',
     customModelHint: 'e.g. gemini-2.5-flash',
     currentModel: 'Current: {model}',
-    modelNote: 'The Pro model is slower and may not be available on the free tier. ' +
-      'If the selected model is busy, the Lite model is used instead.',
+    modelNote: 'If the selected model is busy, the Lite model is used instead.',
     durationSection: 'Event length',
     durationSelect: 'When no end time is given',
     durationOneHour: '1 hour',
@@ -180,10 +197,8 @@ const MESSAGES = {
 
     modelStandard: 'Standard',
     modelLite: 'Lite',
-    modelPro: 'Pro',
     modelStandardLabel: 'Standard (recommended): balanced speed and accuracy',
     modelLiteLabel: 'Lite: faster and cheaper, slightly less accurate',
-    modelProLabel: 'Pro: most accurate, but slower and more expensive',
 
     errNoKey: 'No API key is set. Open Settings from the add-on menu to add one.',
     errInvalidKey: 'The API key is incorrect or no longer valid. Check it in Settings.',

@@ -8,7 +8,8 @@ CalCatch is a Gmail add-on that finds events written in an email with Gemini and
 - Events that look already registered in your calendar are flagged and unchecked by default.
 - Check the ones you want and press **Add to Calendar**. Each event links back to the original email.
 - Uses **your own Gemini API key** (set it in the add-on menu → **Settings**), so usage is billed to your own Google Cloud project.
-- Choose the Gemini model (Standard / Lite / Pro / custom) in **Settings**.
+- Choose the Gemini model (Standard / Lite / custom) in **Settings**.
+- Before the first email is sent to Gemini, CalCatch asks for your agreement. A paid-tier (billing-enabled) API key is strongly recommended, because the Gemini API free tier uses submitted content to improve Google products.
 - Japanese and English UI (follows your Gmail language).
 
 > Status: in development. Not yet published on Google Workspace Marketplace.
@@ -49,6 +50,7 @@ Each user's Gemini API key and model choice are stored in their own User Propert
 | `calendar.calendarlist.readonly` | List your calendars and read your calendar time zone |
 | `script.external_request` | Call the Gemini API |
 | `script.locale` | Show the UI in your Gmail language |
+| `userinfo.email` | Link each event to the original email in the right Gmail account |
 
 ---
 
@@ -60,7 +62,8 @@ CalCatch は、メール本文に書かれた予定を Gemini で読み取り、
 - カレンダーに登録済みと思われる予定には警告を表示し、最初からチェックを外しておきます。
 - 登録したい予定にチェックを入れて「カレンダーに登録」を押すと登録されます。予定の説明欄には元のメールへのリンクが入ります。
 - **利用者自身の Gemini API キー**を使います（アドオンのメニュー →「設定」で設定）。料金は利用者自身の Google Cloud プロジェクトに請求されます。
-- 「設定」で Gemini のモデル（標準・軽量・高精度・直接入力）を選べます。
+- 「設定」で Gemini のモデル（標準・軽量・直接入力）を選べます。
+- 最初にメールを Gemini に送る前に同意を求めます。Gemini API の無料枠では送信内容が Google の製品改善に使われるため、課金を有効にした API キー（有料枠）を強くおすすめします。
 - 画面は日本語と英語に対応しています（Gmail の表示言語に合わせます）。
 
 > 状態：開発中。Google Workspace Marketplace にはまだ公開していません。

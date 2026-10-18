@@ -38,7 +38,9 @@ function listEvents_(calendarId, rangeStart, rangeEnd, tz) {
       timeMax: rangeEnd.toISOString(),
       singleEvents: true,
       showDeleted: false,
-      maxResults: 250,
+      // 期間が長いと件数が多くなるため、1 回で取れるだけ取り、照合に使う項目だけを受け取る
+      maxResults: 2500,
+      fields: 'nextPageToken,items(status,summary,description,start,end)',
       pageToken: pageToken,
     });
     Array.prototype.push.apply(items, res.items || []);
@@ -107,9 +109,14 @@ function annotateExistingEvents_(events, tz, threadId) {
   const rangeStart = new Date(Math.min.apply(null, ranges.map((r) => r.searchStart.getTime())));
   const rangeEnd = new Date(Math.max.apply(null, ranges.map((r) => r.searchEnd.getTime())));
 
+  // 読めないカレンダーがあっても、ほかのカレンダーとの照合は続ける
   let existing = [];
   getOwnedCalendarIds_().forEach((calendarId) => {
-    existing = existing.concat(listEvents_(calendarId, rangeStart, rangeEnd, tz));
+    try {
+      existing = existing.concat(listEvents_(calendarId, rangeStart, rangeEnd, tz));
+    } catch (err) {
+      console.error(`Failed to list events of ${calendarId}: ${err}`);
+    }
   });
 
   events.forEach((ev, i) => {
