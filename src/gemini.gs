@@ -84,6 +84,7 @@ function extractEventsWithGemini_(message, tz, model, apiKey) {
     '- First copy into timeEvidence the exact text of the email that states the date and time. If the date and time are written in different places, include both.',
     '- Always convert times to 24-hour HH:mm. Examples: 「午後2時」→14:00, 「2時半」→02:30 or 14:30 depending on context, 「18時開演」→18:00, 「10:00〜12:00」→start 10:00 and end 12:00, "2:00 PM"→14:00.',
     '- If several times are given (e.g. doors open 13:30 / show starts 14:00), use the time the recipient needs to act (reception, doors open) as the start time and mention the others in description.',
+    '- Set endTime only when the email states when the event ends (e.g. 終演, 終了, "ends", "until", 「〜17:00」, 「17時まで」). A time labeled as doors open, start, reception or meeting time (開場, 開演, 開始, 受付, 集合, "doors", "starts") is never the end time. Example: 「15:00開場 16:30開演」→ startTime 15:00, no endTime, and mention 開演 16:30 in description. If no end is written, omit endTime.',
     '- Set allDay to true only when the email gives no time at all for that event. Never set allDay to true when a time is written. Never invent a time that is not in the email.',
     '- Do not include things that are not the recipient\'s own plans, such as sale or campaign periods in advertisements.',
     '- Write title and description in the same language as the email.',
@@ -237,13 +238,17 @@ function checkGemini_(apiKey, model) {
  *
  * 時刻は「14:30」以外の書式（14時30分、午後2時、2:00 PM、全角数字など）でも読み取る。
  * 時刻欄が空でも、根拠として抜き出した本文（timeEvidence）に時刻があればそれを使う。
+ * 終了時刻が本文にない予定は、開始から durationHours 時間後を終了にし、endInferred を付ける
+ * （設定で長さが変わったときに applyDefaultDuration_ で計算し直すため）。
  */
-function normalizeEvent_(ev, tz) {
+function normalizeEvent_(ev, tz, durationHours) {
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   if (!ev || !ev.title || !DATE_RE.test(ev.startDate || '')) return null;
 
   let startTime = parseTime_(ev.startTime);
   let endTime = parseTime_(ev.endTime);
+  // 「16:30開演」のような開始側の時刻を、Gemini が終了時刻に入れてくることがあるので外す
+  if (endTime && isStartLabeledTime_(ev.timeEvidence, endTime)) endTime = null;
   if (!startTime) {
     const evidence = findTimes_(ev.timeEvidence);
     if (evidence.matches.length > 0) {
@@ -261,6 +266,7 @@ function normalizeEvent_(ev, tz) {
   const endDate = DATE_RE.test(ev.endDate || '') ? ev.endDate : ev.startDate;
   let start;
   let end;
+  let endInferred = false;
 
   if (allDay) {
     start = Utilities.parseDate(ev.startDate, tz, 'yyyy-MM-dd');
@@ -269,10 +275,12 @@ function normalizeEvent_(ev, tz) {
     end = addDays_(end, 1, tz); // 終日予定の終了日は「翌日」を指定する
   } else {
     start = Utilities.parseDate(`${ev.startDate} ${startTime}`, tz, 'yyyy-MM-dd HH:mm');
-    end = endTime
-      ? Utilities.parseDate(`${endDate} ${endTime}`, tz, 'yyyy-MM-dd HH:mm')
-      : new Date(start.getTime() + HOUR_MS); // 終了時刻がなければ 1 時間
-    if (end <= start) end = new Date(start.getTime() + HOUR_MS);
+    end = endTime ? Utilities.parseDate(`${endDate} ${endTime}`, tz, 'yyyy-MM-dd HH:mm') : null;
+    if (!end || end <= start) {
+      // 終了時刻がない（または開始より前の）ときは、開始から設定の長さだけ後にする
+      endInferred = true;
+      end = new Date(start.getTime() + (durationHours || DEFAULT_DURATION_HOURS) * HOUR_MS);
+    }
   }
 
   return {
@@ -280,9 +288,49 @@ function normalizeEvent_(ev, tz) {
     allDay: allDay,
     start: start.toISOString(),
     end: end.toISOString(),
+    endInferred: endInferred,
     location: ev.location ? toHalfWidthAlnum_(String(ev.location).trim()) : '',
     description: ev.description ? toHalfWidthAlnum_(String(ev.description).trim()) : '',
   };
+}
+
+/** 終了時刻を推定した予定（endInferred）の終了を、開始から durationHours 時間後に置き直す */
+function applyDefaultDuration_(events, durationHours) {
+  events.forEach((ev) => {
+    if (ev.endInferred && !ev.allDay) {
+      ev.end = new Date(new Date(ev.start).getTime() + durationHours * HOUR_MS).toISOString();
+    }
+  });
+  return events;
+}
+
+// 時刻に付いている言葉。開始側（開場・開演・受付など）と終了側（終演・終了・まで など）
+// NFKC 後の文字列に対して使う
+const START_LABEL = '開場|開演|開始|受付|集合|入場|スタート|doors|opens?|starts?|begins?|show|check-in|registration';
+const END_LABEL = '終演|終了|閉場|閉演|まで|ends?|until|closes?|finish(?:es)?';
+const LABEL_AFTER_START_RE = new RegExp(`^\\s*[:]?\\s*(?:${START_LABEL})`, 'i');
+const LABEL_AFTER_END_RE = new RegExp(`^\\s*[:]?\\s*(?:${END_LABEL})`, 'i');
+const LABEL_BEFORE_START_RE = new RegExp(`(?:${START_LABEL})\\s*(?:時間|時刻|at)?\\s*[:]?\\s*$`, 'i');
+const LABEL_BEFORE_END_RE = new RegExp(`(?:${END_LABEL})\\s*(?:時間|時刻|at)?\\s*[:]?\\s*$`, 'i');
+
+/**
+ * 根拠の本文で、時刻 time に「開演」「開始」などの開始側の言葉が付いていれば true。
+ * 「16:30開演」のように後ろに付く言葉を優先し、なければ「開演 16:30」のように前に付く言葉を見る。
+ * 終了側の言葉（終演・終了・まで など）が付いていれば false。本文に時刻が見つからなければ false。
+ */
+function isStartLabeledTime_(evidence, time) {
+  const { text, matches } = findTimes_(evidence);
+  return matches.some((m, i) => {
+    if (m.time !== time) return false;
+    const nextStart = i + 1 < matches.length ? matches[i + 1].start : text.length;
+    const after = text.slice(m.end, Math.min(nextStart, m.end + 20));
+    if (LABEL_AFTER_END_RE.test(after)) return false;
+    if (LABEL_AFTER_START_RE.test(after)) return true;
+    const prevEnd = i > 0 ? matches[i - 1].end : 0;
+    const before = text.slice(Math.max(prevEnd, m.start - 20), m.start);
+    if (LABEL_BEFORE_END_RE.test(before)) return false;
+    return LABEL_BEFORE_START_RE.test(before);
+  });
 }
 
 /** 全角の英数字（Ａ–Ｚ・ａ–ｚ・０–９）を半角にする。記号や全角スペースは日本語の文に自然なのでそのまま */

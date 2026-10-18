@@ -16,6 +16,7 @@
  * 利用者ごとの設定（ユーザープロパティ。アドオンのメニュー →「設定」で変更）:
  *   GEMINI_API_KEY … 利用者自身の Gemini API キー
  *   GEMINI_MODEL   … 利用者が選んだモデル名
+ *   DEFAULT_DURATION_HOURS … 終了時刻が書かれていない予定の長さ（時間）
  */
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -37,13 +38,18 @@ const MODEL_CHOICES = [
 const CUSTOM_MODEL_CHOICE = 'custom';  // 「その他（モデル名を直接入力）」
 const DEFAULT_MODEL = 'gemini-flash-latest';
 
+// 終了時刻が書かれていない予定の長さ（時間）。設定画面で選べる値と既定値
+const DURATION_CHOICES = [1, 2, 3, 4];
+const DEFAULT_DURATION_HOURS = 2;
+
 // Gemini の抽出結果と、登録待ちの候補を保持する秒数（CacheService の上限は 6 時間）
 const CACHE_TTL_SEC = 6 * 60 * 60;
 // 抽出のしかた（プロンプトや時刻の読み取り）を変えたら上げ、古いキャッシュを使わないようにする
-const EXTRACT_VERSION = 'v6';
+const EXTRACT_VERSION = 'v7';
 
 const PROP_API_KEY = 'GEMINI_API_KEY';
 const PROP_MODEL = 'GEMINI_MODEL';
+const PROP_DURATION = 'DEFAULT_DURATION_HOURS';
 
 // ---------------------------------------------------------------------------
 // トリガー / アクション
@@ -169,6 +175,8 @@ function onSaveSettings(e) {
   const props = PropertiesService.getUserProperties();
   if (newKey) props.setProperty(PROP_API_KEY, newKey);
   props.setProperty(PROP_MODEL, model);
+  const duration = Number(formValue_(inputs, 'duration_choice'));
+  if (DURATION_CHOICES.indexOf(duration) !== -1) props.setProperty(PROP_DURATION, String(duration));
 
   const navigation = CardService.newNavigation();
   if (messageId && getApiKey_() && e.gmail) {
@@ -232,7 +240,8 @@ function buildExtractionCard_(messageId, forceRefresh) {
     cache.put(key, JSON.stringify(result), CACHE_TTL_SEC);
   }
 
-  const events = result.events;
+  // 終了時刻を推定した予定は、キャッシュ済みでも今の設定の長さで終了を決め直す
+  const events = applyDefaultDuration_(result.events, getDefaultDurationHours_());
   if (events.length === 0) {
     return buildMessageCard_(messageId, t_('noEventsTitle'), t_('noEventsText'), t_('reextract'));
   }
@@ -265,6 +274,12 @@ function getApiKey_() {
 /** 利用者が選んだモデル名。未設定なら既定値 */
 function getSelectedModel_() {
   return PropertiesService.getUserProperties().getProperty(PROP_MODEL) || DEFAULT_MODEL;
+}
+
+/** 終了時刻が書かれていない予定の長さ（時間）。未設定なら既定値 */
+function getDefaultDurationHours_() {
+  const hours = Number(PropertiesService.getUserProperties().getProperty(PROP_DURATION));
+  return DURATION_CHOICES.indexOf(hours) !== -1 ? hours : DEFAULT_DURATION_HOURS;
 }
 
 /**

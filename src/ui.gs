@@ -187,6 +187,19 @@ function buildSettingsCard_(messageId) {
     .addWidget(CardService.newTextParagraph().setText(muted_(
       t_('currentModel', { model: modelDisplayName_(currentModel) }) + '\n' + t_('modelNote'))));
 
+  // 終了時刻が書かれていない予定の長さ
+  const currentDuration = getDefaultDurationHours_();
+  const durationSelect = CardService.newSelectionInput()
+    .setType(CardService.SelectionInputType.DROPDOWN)
+    .setFieldName('duration_choice')
+    .setTitle(t_('durationSelect'));
+  DURATION_CHOICES.forEach((h) => durationSelect.addItem(
+    h === 1 ? t_('durationOneHour') : t_('durationHours', { hours: h }), String(h), h === currentDuration));
+  const durationSection = CardService.newCardSection()
+    .setHeader(t_('durationSection'))
+    .addWidget(durationSelect)
+    .addWidget(CardService.newTextParagraph().setText(muted_(t_('durationNote'))));
+
   const saveButton = CardService.newTextButton()
     .setText(t_('save'))
     .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
@@ -198,7 +211,8 @@ function buildSettingsCard_(messageId) {
   const card = CardService.newCardBuilder()
     .setHeader(CardService.newCardHeader().setTitle(t_('settingsTitle')))
     .addSection(keySection)
-    .addSection(modelSection);
+    .addSection(modelSection)
+    .addSection(durationSection);
 
   card.addSection(buildAboutSection_());
 

@@ -272,7 +272,7 @@ const fromEvidence = (evidence) => {
 ok(fromEvidence('10月25日 14時～16時') === 120, 'fullwidth tilde ～ (U+FF5E) read as range');
 ok(fromEvidence('10月25日 14時〜16時') === 120, 'wave dash 〜 (U+301C) read as range');
 ok(fromEvidence('10月25日 14時から16時まで') === 120, '「から」 read as range');
-ok(fromEvidence('2026-10-25 開場13:30 / 開演14:00') === 60, 'hyphens in the date are not a time range');
+ok(fromEvidence('2026-10-25 開場13:30 / 開演14:00') === 120, 'hyphens in the date are not a time range (default 2h)');
 
 // 19. 選んだモデルが見つからない（404）→ 予備モデルで抽出し、「見つからない」と表示
 state.userProps._m.GEMINI_MODEL = 'gemini-old';
@@ -306,6 +306,41 @@ state.geminiResponses.push(geminiOk([
 call('onReextractEvents', ev('ja'));
 ok(listCalls === 1, `one Events.list call per calendar for 3 events: ${listCalls}`);
 sandbox.Calendar.Events.list = realList;
+
+// 22. 開演・開始などの時刻は終了時刻にしない（Gemini が endTime に入れてきても外す）
+const minutesOf = (e) => { const n = normIn(Object.assign({ title: 'X', startDate: '2027-02-27', allDay: false }, e), 'Asia/Tokyo'); return (new Date(n.end) - new Date(n.start)) / 60000; };
+ok(minutesOf({ timeEvidence: '2027/02/27(土)  15：00開場 16：30開演', startTime: '15:00', endTime: '16:30' }) === 120, '「16：30開演」 is not the end time');
+ok(minutesOf({ timeEvidence: '開場15:00 開演16:30', startTime: '15:00', endTime: '16:30' }) === 120, '「開演16:30」 is not the end time');
+ok(minutesOf({ timeEvidence: '13:00受付 13:30開始', startTime: '13:00', endTime: '13:30' }) === 120, '「13:30開始」 is not the end time');
+ok(minutesOf({ timeEvidence: 'Doors 6:00 PM, show starts 7:00 PM', startTime: '18:00', endTime: '19:00' }) === 120, '"show starts 7:00 PM" is not the end time');
+ok(minutesOf({ timeEvidence: '開演16:30 終演19:00', startTime: '16:30', endTime: '19:00' }) === 150, '「終演19:00」 is kept as the end time');
+ok(minutesOf({ timeEvidence: '13:00開始〜15:00終了', startTime: '13:00', endTime: '15:00' }) === 120, '「15:00終了」 is kept as the end time');
+ok(minutesOf({ timeEvidence: '10月25日 14:00〜16:30', startTime: '14:00', endTime: '16:30' }) === 150, 'plain range end is kept');
+ok(minutesOf({ timeEvidence: '14:00から', startTime: '14:00', endTime: '17:00' }) === 180, 'end time not in the evidence is kept');
+
+// 23. 終了時刻がないときの長さは設定で変えられ、キャッシュ済みの結果にもすぐ反映される
+state.userProps._m.GEMINI_API_KEY = 'K';
+state.calendarEvents = [];
+state.geminiResponses.push(geminiOk([{ title: 'BLEACH FES.', timeEvidence: '2027/02/27(土) 15：00開場 16：30開演', startDate: '2027-02-27', allDay: false, startTime: '15:00', endTime: '16:30' }]));
+card = call('onReextractEvents', ev('ja'));
+ok(cardText(card).includes('2027/02/27（土）15:00 – 17:00'), 'default duration is 2 hours');
+card = call('onOpenSettings', ev('ja'));
+ok(cardText(card).includes('setFieldName(duration_choice)') && cardText(card).includes('addItem(2時間,2,true)'), 'settings has duration dropdown (2h selected)');
+card = call('onOpenSettings', ev('en-US'));
+ok(cardText(card).includes('addItem(1 hour,1,false)') && cardText(card).includes('addItem(4 hours,4,false)'), 'duration choices in English');
+state.geminiResponses.push({ status: 200, body: {} });  // checkGemini_
+res = call('onSaveSettings', ev('ja', { commonEventObject: { userLocale: 'ja', formInputs: {
+  model_choice: { stringInputs: { value: ['gemini-flash-latest'] } }, duration_choice: { stringInputs: { value: ['3'] } } } } }));
+ok(state.userProps._m.DEFAULT_DURATION_HOURS === '3', 'duration saved');
+const fetchesBefore = state.fetchLog.length;
+ok(cardText(res).includes('2027/02/27（土）15:00 – 18:00') && state.fetchLog.length === fetchesBefore, 'new duration applied to cached result without calling Gemini');
+state.geminiResponses.push({ status: 200, body: {} });
+call('onSaveSettings', ev('ja', { commonEventObject: { userLocale: 'ja', formInputs: {
+  model_choice: { stringInputs: { value: ['gemini-flash-latest'] } }, duration_choice: { stringInputs: { value: ['99'] } } } } }));
+ok(state.userProps._m.DEFAULT_DURATION_HOURS === '3', 'invalid duration ignored');
+state.geminiResponses.push(geminiOk([{ title: '勉強会', timeEvidence: '10月25日 14:00〜16:00', startDate: '2026-10-25', allDay: false, startTime: '14:00', endTime: '16:00' }]));
+card = call('onReextractEvents', ev('ja'));
+ok(cardText(card).includes('2026/10/25（日）14:00 – 16:00'), 'written end time is not changed by the duration setting');
 
 const total = (process.exitCode === 1) ? 'FAILED' : 'ALL PASSED';
 console.log(`\n${total}`);

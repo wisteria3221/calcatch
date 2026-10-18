@@ -68,6 +68,11 @@ const MESSAGES = {
     currentModel: '現在の設定: {model}',
     modelNote: '高精度モデルは応答に時間がかかり、無料枠では使えない場合があります。' +
       '選んだモデルが混雑しているときは、軽量モデルで抽出します。',
+    durationSection: '予定の長さ',
+    durationSelect: '終了時刻が書かれていないとき',
+    durationOneHour: '1時間',
+    durationHours: '{hours}時間',
+    durationNote: 'メールに終了時刻がない予定は、開始からこの長さで登録します。',
     save: '保存',
     saved: '保存しました',
     savedUnverified: '保存しました。ただし動作を確認できませんでした（{reason}）',
@@ -156,6 +161,11 @@ const MESSAGES = {
     currentModel: 'Current: {model}',
     modelNote: 'The Pro model is slower and may not be available on the free tier. ' +
       'If the selected model is busy, the Lite model is used instead.',
+    durationSection: 'Event length',
+    durationSelect: 'When no end time is given',
+    durationOneHour: '1 hour',
+    durationHours: '{hours} hours',
+    durationNote: 'Events without an end time in the email are added with this length from the start.',
     save: 'Save',
     saved: 'Saved.',
     savedUnverified: 'Saved, but couldn’t verify it ({reason})',
