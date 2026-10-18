@@ -5,17 +5,19 @@ Cloud コンソール（プロジェクト `calcatch-wisteria`）の「Google Wo
 
 ## アプリの構成（App Configuration）
 
+コンソールの表示言語によって項目名の訳が少し違うことがあるため、英語の項目名を括弧で併記している。
+
 | 項目 | 値 |
 | --- | --- |
-| App visibility | Public |
-| Installation settings | Individual + Admin install |
-| App integrations | Google Workspace add-on → Deploy using Apps Script deployment ID |
-| Deployment ID | `AKfycbyIeh-7N6-rxpM5FFfAMDdhqFVhB6wZAprrxz_fFP0FdBEgv3SKy-vbKWqjLcg5WuI8Qg` |
-| Developer name | wisteria3221 |
-| Developer website URL | https://calcatch.wisteria.xyz/ |
-| Developer email | calcatch-support@googlegroups.com |
+| アプリの公開設定（App visibility） | 一般公開（Public） |
+| インストール設定（Installation settings） | 個人と管理者によるインストール（Individual + Admin install） |
+| アプリの統合（App integrations） | Google Workspace アドオン → Apps Script のデプロイ ID でデプロイ（Deploy using Apps Script deployment ID） |
+| デプロイ ID（Deployment ID） | `AKfycbyIeh-7N6-rxpM5FFfAMDdhqFVhB6wZAprrxz_fFP0FdBEgv3SKy-vbKWqjLcg5WuI8Qg` |
+| 開発者名（Developer name） | wisteria3221 |
+| 開発者のウェブサイトの URL（Developer website URL） | https://calcatch.wisteria.xyz/ |
+| 開発者のメールアドレス（Developer email） | calcatch-support@googlegroups.com |
 
-OAuth scopes（`src/appsscript.json` と同じ 7 つ）:
+OAuth スコープ（OAuth scopes。`src/appsscript.json` と同じ 7 つ）:
 
 ```
 https://www.googleapis.com/auth/gmail.addons.execute
@@ -31,34 +33,34 @@ https://www.googleapis.com/auth/userinfo.email
 
 | 項目 | 値 |
 | --- | --- |
-| Category | Productivity |
-| Pricing | Free of charge |
-| Application icon 128×128 | `docs/images/icon-128.png` |
-| Application icon 32×32 | `docs/images/icon-32.png` |
-| Application card banner 220×140 | `marketplace/banner-220x140.png`（元データ `banner.svg`） |
-| Screenshots | 1280×800 を 3〜5 枚（下記） |
-| Terms of service URL | https://calcatch.wisteria.xyz/terms.html |
-| Privacy policy URL | https://calcatch.wisteria.xyz/privacy.html |
-| Support URL | https://github.com/wisteria3221/calcatch/issues |
-| Help URL | https://calcatch.wisteria.xyz/ |
+| カテゴリ（Category） | 仕事効率化（Productivity） |
+| 料金（Pricing） | 無料（Free of charge） |
+| アプリのアイコン 128×128（Application icon） | `docs/images/icon-128.png` |
+| アプリのアイコン 32×32（Application icon） | `docs/images/icon-32.png` |
+| アプリのカードバナー 220×140（Application card banner） | `marketplace/banner-220x140.png`（元データ `banner.svg`） |
+| スクリーンショット（Screenshots） | 1280×800 を 3〜5 枚（下記） |
+| 利用規約の URL（Terms of service URL） | https://calcatch.wisteria.xyz/terms.html |
+| プライバシー ポリシーの URL（Privacy policy URL） | https://calcatch.wisteria.xyz/privacy.html |
+| サポートの URL（Support URL） | https://github.com/wisteria3221/calcatch/issues |
+| ヘルプの URL（Help URL） | https://calcatch.wisteria.xyz/ |
 
-言語は English（既定）と日本語の 2 つを登録する。
+言語は英語（既定）と日本語の 2 つを登録する。言語ごとに、アプリ名・簡単な説明・詳細な説明・スクリーンショットを入力する。
 
-### English
+### 英語（English）
 
-**Application name**
+**アプリケーション名（Application name）**
 
 ```
 CalCatch
 ```
 
-**Short description**
+**簡単な説明（Short description）**
 
 ```
 Find the events written in your emails with Gemini and add them to Google Calendar in one step, with duplicate checks.
 ```
 
-**Detailed description**
+**詳細な説明（Detailed description）**
 
 ```
 CalCatch is a Gmail add-on that turns the dates, times and places written in an email into Google Calendar events.
@@ -86,21 +88,21 @@ Source code: https://github.com/wisteria3221/calcatch (MIT License)
 Support: calcatch-support@googlegroups.com
 ```
 
-### 日本語
+### 日本語（Japanese）
 
-**アプリケーション名**
+**アプリケーション名（Application name）**
 
 ```
 CalCatch
 ```
 
-**簡単な説明**
+**簡単な説明（Short description）**
 
 ```
 メールに書かれた予定を Gemini で見つけ、Google カレンダーにそのまま登録。登録済みの予定との重複もチェックします。
 ```
 
-**詳細な説明**
+**詳細な説明（Detailed description）**
 
 ```
 CalCatch は、メール本文に書かれた日時や場所を Google カレンダーの予定に変える Gmail アドオンです。
