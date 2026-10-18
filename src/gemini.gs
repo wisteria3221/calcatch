@@ -46,7 +46,7 @@ const EVENT_SCHEMA = {
 
 /**
  * Gemini 関連のエラー。code で種類を表し、画面ではそれに応じた文言を出す。
- *   no_key / invalid_key / model / quota / busy / no_response / generic
+ *   invalid_key / model / quota / busy / no_response / generic
  */
 function geminiError_(code, detail) {
   const err = new Error(detail || code);
@@ -57,7 +57,6 @@ function geminiError_(code, detail) {
 /** エラーを利用者向けの文言に変える */
 function describeError_(err) {
   switch (err && err.geminiCode) {
-    case 'no_key': return t_('errNoKey');
     case 'invalid_key': return t_('errInvalidKey');
     case 'model': return t_('errModel');
     case 'quota': return t_('errQuota');
@@ -239,10 +238,10 @@ function checkGemini_(apiKey, model) {
  *
  * 時刻は「14:30」以外の書式（14時30分、午後2時、2:00 PM、全角数字など）でも読み取る。
  * 時刻欄が空でも、根拠として抜き出した本文（timeEvidence）に時刻があればそれを使う。
- * 終了時刻が本文にない予定は、開始から durationHours 時間後を終了にし、endInferred を付ける
- * （設定で長さが変わったときに applyDefaultDuration_ で計算し直すため）。
+ * 終了時刻が本文にない予定は、ひとまず開始から既定の長さの後を終了にし、endInferred を付ける
+ * （表示のたびに applyDefaultDuration_ で設定の長さに置き直すため）。
  */
-function normalizeEvent_(ev, tz, durationHours) {
+function normalizeEvent_(ev, tz) {
   const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   if (!ev || !ev.title || !DATE_RE.test(ev.startDate || '')) return null;
 
@@ -285,9 +284,9 @@ function normalizeEvent_(ev, tz, durationHours) {
       if (nextDay.getTime() - start.getTime() <= MAX_OVERNIGHT_HOURS * HOUR_MS) end = nextDay;
     }
     if (!end || end <= start) {
-      // 終了時刻がない（または開始より前の）ときは、開始から設定の長さだけ後にする
+      // 終了時刻がない（または開始より前の）ときは、開始から既定の長さだけ後にする
       endInferred = true;
-      end = new Date(start.getTime() + (durationHours || DEFAULT_DURATION_HOURS) * HOUR_MS);
+      end = new Date(start.getTime() + DEFAULT_DURATION_HOURS * HOUR_MS);
     }
   }
 

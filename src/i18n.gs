@@ -102,7 +102,6 @@ const MESSAGES = {
     modelLiteLabel: '軽量：速くて安いが、精度はやや落ちる',
 
     // Gemini のエラー
-    errNoKey: 'API キーが設定されていません。メニューの「設定」から設定してください。',
     errInvalidKey: 'API キーが正しくないか、無効になっています。設定から確認してください。',
     errModel: '選んだモデルが使えません。設定でモデルを変更してください。',
     errQuota: 'Gemini API の利用上限に達しました。しばらく待つか、設定でモデルや API キーを見直してください。',
@@ -200,7 +199,6 @@ const MESSAGES = {
     modelStandardLabel: 'Standard (recommended): balanced speed and accuracy',
     modelLiteLabel: 'Lite: faster and cheaper, slightly less accurate',
 
-    errNoKey: 'No API key is set. Open Settings from the add-on menu to add one.',
     errInvalidKey: 'The API key is incorrect or no longer valid. Check it in Settings.',
     errModel: 'The selected model can’t be used. Choose another model in Settings.',
     errQuota: 'You’ve reached the Gemini API usage limit. Wait a while, or review the model or API key in Settings.',

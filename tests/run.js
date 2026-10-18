@@ -432,5 +432,15 @@ ok(state.inserted.length === insertedBefore2 + 1 && pendingDuringInsert === unde
 ok(!state.locked, 'lock released after registering');
 sandbox.Calendar.Events.insert = realInsert2;
 
+// 31. 中止された予定（status: cancelled）は重複の照合に使わない
+state.calendarEvents = [{ status: 'cancelled', summary: '中止テスト', start: { dateTime: '2026-10-25T10:00:00+09:00' }, end: { dateTime: '2026-10-25T12:00:00+09:00' }, description: '' }];
+state.geminiResponses.push(geminiOk([{ title: '中止テスト', timeEvidence: '10/25 10:00〜12:00', startDate: '2026-10-25', allDay: false, startTime: '10:00', endTime: '12:00' }]));
+card = call('onReextractEvents', ev('ja'));
+ok(!cardText(card).includes('登録済みの可能性が高い') && cardText(card).includes('setSelected(true)'), 'cancelled event is not treated as a duplicate');
+state.calendarEvents[0].status = 'confirmed';
+card = call('onGmailMessageOpen', ev('ja'));  // 抽出結果はキャッシュを使い、照合だけやり直す
+ok(cardText(card).includes('登録済みの可能性が高い'), 'same event with status confirmed is a duplicate');
+state.calendarEvents = [];
+
 const total = (process.exitCode === 1) ? 'FAILED' : 'ALL PASSED';
 console.log(`\n${total}`);

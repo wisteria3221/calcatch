@@ -88,6 +88,5 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 
 ## 補足
 
-- Apps Script 上のメインファイル名は「コード.gs」のままになっている。最初の `clasp push` で `Code.gs` に置き換わる。
 - アドオンのメニュー（universal action）のラベルはマニフェストで多言語化できないため「Settings / 設定」としている。
 - Gemini の無料枠では送信内容が Google のサービス改善に使われるため、初回の同意カード・設定画面・サイト・プライバシーポリシーで告知している。
