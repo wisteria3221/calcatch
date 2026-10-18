@@ -12,6 +12,7 @@ Google Workspace Marketplace での一般公開を目指している。オーナ
 | サイト（GitHub Pages, `docs/`） | https://calcatch.wisteria.xyz/ （英語） / `/ja/` （日本語） |
 | ドメイン | `wisteria.xyz`（ConoHa で取得・DNS 管理）。`calcatch` の CNAME → `wisteria3221.github.io` |
 | Cloud プロジェクト | `calcatch-wisteria`（名前 CalCatch、プロジェクト番号 358436174527）。請求先アカウントは未紐付け |
+| サポートメール | `calcatch-support@googlegroups.com`（Google グループ「CalCatch Support」、オーナー yusuke42@gmail.com。外部から投稿可・会話は管理者のみ閲覧） |
 | Search Console | `wisteria.xyz` をドメインプロパティとして所有確認済み（OAuth の承認済みドメイン用） |
 
 ## 構成
@@ -69,7 +70,7 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 - [ ] 請求先アカウントを紐付け（オーナーが判断・実行）。予算アラートを設定
 - [x] API を有効化：Google Workspace Marketplace SDK（`appsmarket-component.googleapis.com`）、Google Calendar API（`calendar-json.googleapis.com`）
 - [ ] OAuth 同意画面（Google Auth Platform）：アプリ名 CalCatch、外部公開、ホーム／プライバシー／規約の URL、承認済みドメイン `wisteria.xyz`、スコープ 6 つ
-- [ ] ユーザーサポートメール：Google グループを作ることに決定（オーナーが作成）
+- [x] ユーザーサポートメール：Google グループ `calcatch-support@googlegroups.com` を作成、外部からの受信を確認済み
 - [x] アイコンを作成（`docs/images/`。封筒＋カレンダーのバッジ。96px 以上は `icon.svg`、48px 以下は線を太くした `icon-small.svg` から書き出し。マニフェストの logoUrl は `icon-48.png`）
 - [ ] Apps Script プロジェクトを新しい Cloud プロジェクト（プロジェクト番号）に紐付け
 - [ ] バージョンを固定したデプロイを作成（Marketplace SDK に指定する）
