@@ -59,7 +59,7 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 - モデルは設定画面で選択（標準 `gemini-flash-latest` / 軽量 `gemini-flash-lite-latest` / 高精度 `gemini-pro-latest` / 直接入力）。画面にはエイリアス ID ではなく「標準」などの名前を出す。混雑時は軽量モデルに切り替え、その旨を表示。
 - API キーは利用者自身のもの（開発者のキーを共有で使う処理はない）。
 - カレンダーのスコープは `calendar.events.owned` + `calendar.calendarlist.readonly`（全権限の `calendar` は使わない）。
-- 公開サイトとプライバシーポリシーは GitHub Pages（独自ドメインのサブドメイン）。問い合わせ先は当面 GitHub Issues。
+- 公開サイトとプライバシーポリシーは GitHub Pages（独自ドメインのサブドメイン）。問い合わせ先はサポートメール（Google グループ）と GitHub Issues。
 
 ## 公開までの残り作業
 
