@@ -69,7 +69,7 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 - [x] 標準の Google Cloud プロジェクト「CalCatch」を作成（ID `calcatch-wisteria`。`calcatch` は他者が使用済み）
 - [ ] 請求先アカウントを紐付け（オーナーが判断・実行）。予算アラートを設定
 - [x] API を有効化：Google Workspace Marketplace SDK（`appsmarket-component.googleapis.com`）、Google Calendar API（`calendar-json.googleapis.com`）
-- [ ] OAuth 同意画面（Google Auth Platform）：アプリ名 CalCatch、外部公開、ホーム／プライバシー／規約の URL、承認済みドメイン `wisteria.xyz`、スコープ 6 つ
+- [x] OAuth 同意画面（Google Auth Platform）：アプリ名 CalCatch、外部公開、ホーム／プライバシー／規約の URL、承認済みドメイン `wisteria.xyz`、スコープ 6 つ
 - [x] ユーザーサポートメール：Google グループ `calcatch-support@googlegroups.com` を作成、外部からの受信を確認済み
 - [x] アイコンを作成（`docs/images/`。封筒＋カレンダーのバッジ。96px 以上は `icon.svg`、48px 以下は線を太くした `icon-small.svg` から書き出し。マニフェストの logoUrl は `icon-48.png`）
 - [ ] Apps Script プロジェクトを新しい Cloud プロジェクト（プロジェクト番号）に紐付け
