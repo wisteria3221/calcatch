@@ -13,6 +13,7 @@ Google Workspace Marketplace での一般公開を目指している。オーナ
 | ドメイン | `wisteria.xyz`（ConoHa で取得・DNS 管理）。`calcatch` の CNAME → `wisteria3221.github.io` |
 | Cloud プロジェクト | `calcatch-wisteria`（名前 CalCatch、プロジェクト番号 358436174527）。請求先アカウントは未紐付け |
 | サポートメール | `calcatch-support@googlegroups.com`（Google グループ「CalCatch Support」、オーナー yusuke42@gmail.com。外部から投稿可・会話は管理者のみ閲覧） |
+| 公開用デプロイ | `AKfycbyIeh-7N6-rxpM5FFfAMDdhqFVhB6wZAprrxz_fFP0FdBEgv3SKy-vbKWqjLcg5WuI8Qg`（Marketplace SDK に指定。現在 version 1） |
 | Search Console | `wisteria.xyz` をドメインプロパティとして所有確認済み（OAuth の承認済みドメイン用） |
 
 ## 構成
@@ -42,6 +43,8 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 - `clasp push` の前提：`clasp login` 済み、かつ https://script.google.com/home/usersettings で Apps Script API がオン。
 - 動作確認は Gmail で行う（テストデプロイ「Test latest code」をインストール済みなので、push すれば最新コードで動く）。マニフェストのスコープを変えたときは、Gmail 側で再承認が必要。
 - 変更したら `npm test` → `clasp push` → Gmail で確認 → コミット・プッシュ。
+- マニフェストを変えたときの `clasp push` は確認待ちで「Skipping push.」になるので `clasp push --force` を使う。
+- 公開版を更新するとき：`clasp create-version "説明"` → `clasp create-deployment -i <公開用デプロイの ID> -V <新しい版>`（デプロイ ID は変えない。Marketplace SDK の設定はそのまま）。
 
 ## コーディング上の決まり
 
@@ -72,8 +75,8 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 - [x] OAuth 同意画面（Google Auth Platform）：アプリ名 CalCatch、外部公開、ホーム／プライバシー／規約の URL、承認済みドメイン `wisteria.xyz`、スコープ 6 つ
 - [x] ユーザーサポートメール：Google グループ `calcatch-support@googlegroups.com` を作成、外部からの受信を確認済み
 - [x] アイコンを作成（`docs/images/`。封筒＋カレンダーのバッジ。96px 以上は `icon.svg`、48px 以下は線を太くした `icon-small.svg` から書き出し。マニフェストの logoUrl は `icon-48.png`）
-- [ ] Apps Script プロジェクトを新しい Cloud プロジェクト（プロジェクト番号）に紐付け
-- [ ] バージョンを固定したデプロイを作成（Marketplace SDK に指定する）
+- [x] Apps Script プロジェクトを新しい Cloud プロジェクト（プロジェクト番号）に紐付け
+- [x] バージョンを固定したデプロイを作成（Marketplace SDK に指定する）
 - [ ] Marketplace SDK の設定と掲載情報（説明文・スクリーンショット、日英）
 - [ ] OAuth アプリの確認を申請（スコープの使い方を示すデモ動画が必要。台本はこちらで用意）
 - [ ] Marketplace の審査に申請、指摘に対応
