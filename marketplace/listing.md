@@ -38,7 +38,7 @@ https://www.googleapis.com/auth/userinfo.email
 | アプリのアイコン 128×128（Application icon） | `docs/images/icon-128.png` |
 | アプリのアイコン 32×32（Application icon） | `docs/images/icon-32.png` |
 | アプリのカードバナー 220×140（Application card banner） | `marketplace/banner-220x140.png`（元データ `banner.svg`） |
-| スクリーンショット（Screenshots） | 1280×800 を 3〜5 枚（下記） |
+| スクリーンショット（Screenshots） | `marketplace/screenshots/{en,ja}/` の 4 枚（下記） |
 | 利用規約の URL（Terms of service URL） | https://calcatch.wisteria.xyz/terms.html |
 | プライバシー ポリシーの URL（Privacy policy URL） | https://calcatch.wisteria.xyz/privacy.html |
 | サポートの URL（Support URL） | https://github.com/wisteria3221/calcatch/issues |
@@ -132,9 +132,11 @@ Gemini API の無料枠では、送信した内容が Google の製品改善に�
 
 ## スクリーンショット（1280×800）
 
-Gmail の画面で撮影する。個人情報が写らないよう、テスト用のメール（架空の差出人・予定）を使う。英語版と日本語版を別に用意する（Gmail の表示言語を切り替えて撮る）。
+`marketplace/screenshots/{en,ja}/` の 4 枚を、言語ごとにこの順で登録する。
+カードの構成と文言を src/ui.gs・src/i18n.gs に合わせて再現した合成画像で、メールと予定は架空のもの。
+UI や文言を変えたら `node marketplace/screenshots/build.js` で作り直す（Google Chrome を使う）。
 
-1. メールを開き、抽出された予定の一覧が出ている状態（メインの 1 枚）
-2. 重複の警告（赤）が出ている予定を含む一覧
-3. 登録後の完了表示と、カレンダーに入った予定（元メールへのリンク付き）
-4. 設定画面（API キー・モデル・予定の長さ）
+1. `1-events.png` — メールを開き、抽出された予定の一覧が出ている状態（メインの 1 枚）
+2. `2-duplicate.png` — 重複の警告（赤）が出て、チェックが外れている予定を含む一覧
+3. `3-added.png` — 登録結果と、登録した予定の説明欄に入る元メールへのリンク
+4. `4-settings.png` — 設定画面（API キー・モデル・予定の長さ）

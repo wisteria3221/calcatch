@@ -83,7 +83,7 @@ clasp push           # Apps Script に反映（npm run push でテスト → pus
 - [x] アイコンを作成（`docs/images/`。封筒＋カレンダーのバッジ。96px 以上は `icon.svg`、48px 以下は線を太くした `icon-small.svg` から書き出し。マニフェストの logoUrl は `icon-48.png`）
 - [x] Apps Script プロジェクトを新しい Cloud プロジェクト（プロジェクト番号）に紐付け
 - [x] バージョンを固定したデプロイを作成（Marketplace SDK に指定する）
-- [ ] Marketplace SDK の設定と掲載情報（説明文・スクリーンショット、日英）。入力内容とカードバナーは `marketplace/` に用意済み。スクリーンショットは未撮影
+- [ ] Marketplace SDK の設定と掲載情報（説明文・スクリーンショット、日英）。入力内容とカードバナーは `marketplace/` に用意済み。スクリーンショットも `marketplace/screenshots/` に作成済み
 - [ ] OAuth アプリの確認を申請（スコープの使い方を示すデモ動画が必要。台本はこちらで用意）
 - [ ] Marketplace の審査に申請、指摘に対応
 
