@@ -256,7 +256,7 @@ function formatRange_(range, tz) {
   const dateTime = (d) => date(d) + (ja ? '' : ', ') + time(d);
 
   if (range.allDay) {
-    const lastDay = new Date(end.getTime() - DAY_MS);
+    const lastDay = addDays_(end, -1, tz);  // 終了日は「翌日」なので 1 日戻す
     const s = date(start);
     const e = date(lastDay);
     const days = s === e ? s : `${s} – ${e}`;

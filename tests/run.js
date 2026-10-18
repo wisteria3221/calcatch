@@ -255,5 +255,57 @@ ok(widgets.includes('setIconUrl(https://calcatch.wisteria.xyz/images/warning.png
 ok(widgets.includes('<font color="#d93025">2026/10/25（日）14:00 – 16:00</font>') && !widgets.includes('setBottomLabel'), 'existing event date shown in red in the text');
 ok(widgets.includes('setAltText(日時)') && widgets.includes('setAltText(場所)') && widgets.includes('setAltText(メモ)'), 'icons have alt text from labels');
 
+// 17. 夏時間の切り替え日でも、終日予定の終了日と表示がずれない
+const normIn = (e, tz) => { sandbox.__ev = e; return vm.runInContext(`normalizeEvent_(__ev, '${tz}')`, sandbox); };
+const fallBack = normIn({ title: 'Fall', startDate: '2026-11-01', allDay: true }, 'America/New_York');
+ok(fallBack.end === '2026-11-02T05:00:00.000Z', `all-day end on DST fall-back day is next midnight: ${fallBack.end}`);
+// カレンダーから読んだ既存の終日予定（3/8 0:00 EST 〜 3/9 0:00 EDT。この日は 23 時間しかない）
+sandbox.__r = { allDay: true, start: '2026-03-08T05:00:00.000Z', end: '2026-03-09T04:00:00.000Z' };
+const springText = vm.runInContext(`setLocale_({ commonEventObject: { userLocale: 'en' } }); formatRange_(__r, 'America/New_York')`, sandbox);
+ok(springText === 'Sun, Mar 8, 2026 (all day)', `all-day on DST spring-forward day shown as one day: ${springText}`);
+
+// 18. 根拠から時刻を読むときの範囲の判定（全角チルダ・「から」・日付のハイフン）
+const fromEvidence = (evidence) => {
+  const n = normIn({ title: 'X', timeEvidence: evidence, startDate: '2026-10-25', allDay: true }, 'Asia/Tokyo');
+  return (new Date(n.end) - new Date(n.start)) / 60000;
+};
+ok(fromEvidence('10月25日 14時～16時') === 120, 'fullwidth tilde ～ (U+FF5E) read as range');
+ok(fromEvidence('10月25日 14時〜16時') === 120, 'wave dash 〜 (U+301C) read as range');
+ok(fromEvidence('10月25日 14時から16時まで') === 120, '「から」 read as range');
+ok(fromEvidence('2026-10-25 開場13:30 / 開演14:00') === 60, 'hyphens in the date are not a time range');
+
+// 19. 選んだモデルが見つからない（404）→ 予備モデルで抽出し、「見つからない」と表示
+state.userProps._m.GEMINI_MODEL = 'gemini-old';
+state.geminiResponses.push({ status: 404, body: { error: { message: 'models/gemini-old is not found' } } });
+state.geminiResponses.push(geminiOk([{ title: 'MTG', timeEvidence: '10/26 10:00', startDate: '2026-10-26', allDay: false, startTime: '10:00' }]));
+card = call('onReextractEvents', ev('ja'));
+ok(cardText(card).includes('選んだモデル（gemini-old）が見つからないため') && !cardText(card).includes('混雑していた'), 'missing model → "not found" note, not "busy"');
+state.userProps._m.GEMINI_MODEL = 'gemini-flash-latest';
+
+// 20. 登録がすべて失敗 → 失敗を通知し、候補を残して再試行できる
+state.calendarEvents = [];
+state.geminiResponses.push(geminiOk([{ title: '勉強会', timeEvidence: '10月25日 14:00〜16:00', startDate: '2026-10-25', allDay: false, startTime: '14:00', endTime: '16:00' }]));
+call('onReextractEvents', ev('ja'));
+const realInsert = sandbox.Calendar.Events.insert;
+sandbox.Calendar.Events.insert = () => { throw new Error('backend error'); };
+res = call('onRegisterEvents', ev('ja', { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } }));
+ok(cardText(res).includes('登録できませんでした') && !cardText(res).includes('0件を登録'), 'all inserts failed → failure notice');
+sandbox.Calendar.Events.insert = realInsert;
+res = call('onRegisterEvents', ev('ja', { commonEventObject: { userLocale: 'ja', formInputs: { select_0: { stringInputs: { value: ['on'] } } } } }));
+ok(cardText(res).includes('1件を登録しました'), 'pending kept after total failure, retry succeeds');
+
+// 21. 重複チェックはカレンダーごとに 1 回だけ一覧を取得する
+let listCalls = 0;
+const realList = sandbox.Calendar.Events.list;
+sandbox.Calendar.Events.list = (...a) => { listCalls++; return realList(...a); };
+state.geminiResponses.push(geminiOk([
+  { title: 'A', timeEvidence: '10/25 10:00', startDate: '2026-10-25', allDay: false, startTime: '10:00' },
+  { title: 'B', timeEvidence: '10/27 10:00', startDate: '2026-10-27', allDay: false, startTime: '10:00' },
+  { title: 'C', timeEvidence: '10/30', startDate: '2026-10-30', allDay: true },
+]));
+call('onReextractEvents', ev('ja'));
+ok(listCalls === 1, `one Events.list call per calendar for 3 events: ${listCalls}`);
+sandbox.Calendar.Events.list = realList;
+
 const total = (process.exitCode === 1) ? 'FAILED' : 'ALL PASSED';
 console.log(`\n${total}`);

@@ -28,16 +28,23 @@ function getOwnedCalendarIds_() {
   return ids.length ? ids : ['primary'];
 }
 
-/** 指定した期間にある予定を、照合しやすい形で返す */
+/** 指定した期間にある予定を、照合しやすい形で返す（ページを順にたどってすべて取得する） */
 function listEvents_(calendarId, rangeStart, rangeEnd, tz) {
-  const res = Calendar.Events.list(calendarId, {
-    timeMin: rangeStart.toISOString(),
-    timeMax: rangeEnd.toISOString(),
-    singleEvents: true,
-    showDeleted: false,
-    maxResults: 250,
-  });
-  return (res.items || [])
+  const items = [];
+  let pageToken;
+  do {
+    const res = Calendar.Events.list(calendarId, {
+      timeMin: rangeStart.toISOString(),
+      timeMax: rangeEnd.toISOString(),
+      singleEvents: true,
+      showDeleted: false,
+      maxResults: 250,
+      pageToken: pageToken,
+    });
+    Array.prototype.push.apply(items, res.items || []);
+    pageToken = res.nextPageToken;
+  } while (pageToken);
+  return items
     .filter((e) => e.status !== 'cancelled' && e.start && e.end)
     .map((e) => {
       const allDay = !!e.start.date;
@@ -84,32 +91,46 @@ function createCalendarEvent_(ev, tz, mailLink) {
  *          'similar' … 似た予定がある
  */
 function annotateExistingEvents_(events, tz, threadId) {
-  const calendarIds = getOwnedCalendarIds_();
-
-  events.forEach((ev) => {
+  if (events.length === 0) return;
+  // 予定の開始日の 0 時から、終了日の翌日 0 時までを検索範囲にする。
+  // API の呼び出しを減らすため、全予定をまとめた範囲でカレンダーごとに 1 回だけ取得し、照合は手元で行う
+  const ranges = events.map((ev) => {
     const start = new Date(ev.start);
     const end = new Date(ev.end);
-    // 予定の開始日の 0 時から、終了日の翌日 0 時までを検索範囲にする
-    const rangeStart = startOfDay_(start, tz);
-    const rangeEnd = ev.allDay ? end : new Date(startOfDay_(end, tz).getTime() + DAY_MS);
+    return {
+      start: start,
+      end: end,
+      searchStart: startOfDay_(start, tz),
+      searchEnd: ev.allDay ? end : addDays_(end, 1, tz),
+    };
+  });
+  const rangeStart = new Date(Math.min.apply(null, ranges.map((r) => r.searchStart.getTime())));
+  const rangeEnd = new Date(Math.max.apply(null, ranges.map((r) => r.searchEnd.getTime())));
 
+  let existing = [];
+  getOwnedCalendarIds_().forEach((calendarId) => {
+    existing = existing.concat(listEvents_(calendarId, rangeStart, rangeEnd, tz));
+  });
+
+  events.forEach((ev, i) => {
+    const { start, end, searchStart, searchEnd } = ranges[i];
     let best = null;
-    calendarIds.forEach((calendarId) => {
-      listEvents_(calendarId, rangeStart, rangeEnd, tz).forEach((e) => {
-        const match = classifyExisting_(ev, start, end, e, threadId);
-        if (!match) return;
-        const score = (match.level === 'same' ? 10 : 0) + match.similarity;
-        if (!best || score > best.score) {
-          best = {
-            score: score,
-            level: match.level,
-            title: e.title,
-            allDay: e.allDay,
-            start: e.start.toISOString(),
-            end: e.end.toISOString(),
-          };
-        }
-      });
+    existing.forEach((e) => {
+      // まとめて取得した範囲のうち、この予定の検索範囲にかかるものだけを照合する
+      if (e.end <= searchStart || e.start >= searchEnd) return;
+      const match = classifyExisting_(ev, start, end, e, threadId);
+      if (!match) return;
+      const score = (match.level === 'same' ? 10 : 0) + match.similarity;
+      if (!best || score > best.score) {
+        best = {
+          score: score,
+          level: match.level,
+          title: e.title,
+          allDay: e.allDay,
+          start: e.start.toISOString(),
+          end: e.end.toISOString(),
+        };
+      }
     });
 
     if (best) {
@@ -182,4 +203,14 @@ function normalizeTitle_(s) {
 
 function startOfDay_(date, tz) {
   return Utilities.parseDate(Utilities.formatDate(date, tz, 'yyyy-MM-dd'), tz, 'yyyy-MM-dd');
+}
+
+/**
+ * date のその日（tz での日付）から days 日ずらした日の 0 時を返す。
+ * 夏時間の切り替え日は 1 日が 24 時間ではないため、ミリ秒の足し算ではなく日付で計算する
+ */
+function addDays_(date, days, tz) {
+  const [y, m, d] = Utilities.formatDate(date, tz, 'yyyy-MM-dd').split('-').map(Number);
+  const shifted = Utilities.formatDate(new Date(Date.UTC(y, m - 1, d + days)), 'UTC', 'yyyy-MM-dd');
+  return Utilities.parseDate(shifted, tz, 'yyyy-MM-dd');
 }

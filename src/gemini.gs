@@ -8,6 +8,9 @@ const FALLBACK_MODEL = 'gemini-flash-lite-latest';
 // 一時的なエラーとして再試行する HTTP ステータス（混雑・レート制限・サーバーエラー）
 const RETRYABLE_STATUS = [429, 500, 503, 504];
 const RETRY_DELAYS_MS = [1000, 3000];  // 同じモデルでの再試行前の待ち時間
+// 再試行を打ち切るまでの時間。アドオンの実行時間の上限（約 30 秒）を超えると
+// 一般的なエラー画面になってしまうため、余裕を持って打ち切り「混雑」の案内を出す
+const GEMINI_TIME_BUDGET_MS = 18000;
 const MAX_BODY_CHARS = 20000;          // Gemini に渡す本文の上限文字数
 
 const EVENT_SCHEMA = {
@@ -65,7 +68,8 @@ function describeError_(err) {
 
 /**
  * メール本文から予定を抽出する。
- * 戻り値: { events: Gemini が返した予定の配列, usedModel: 実際に使ったモデル名 }
+ * 戻り値: { events: Gemini が返した予定の配列, usedModel: 実際に使ったモデル名,
+ *          fallbackReason: 予備モデルに切り替えた理由（'busy' / 'model'。切り替えていなければ ''） }
  */
 function extractEventsWithGemini_(message, tz, model, apiKey) {
   const receivedAt = Utilities.formatDate(message.getDate(), tz, "yyyy-MM-dd'T'HH:mm (EEE)");
@@ -108,7 +112,7 @@ function extractEventsWithGemini_(message, tz, model, apiKey) {
   };
 
   const models = model === FALLBACK_MODEL ? [model] : [model, FALLBACK_MODEL];
-  const { json, model: usedModel } = callGeminiWithRetry_(models, apiKey, payload);
+  const { json, model: usedModel, fallbackReason } = callGeminiWithRetry_(models, apiKey, payload);
 
   const candidate = json.candidates && json.candidates[0];
   const text = candidate && candidate.content && candidate.content.parts
@@ -125,25 +129,35 @@ function extractEventsWithGemini_(message, tz, model, apiKey) {
   return {
     events: Array.isArray(parsed.events) ? parsed.events : [],
     usedModel: usedModel,
+    fallbackReason: fallbackReason,
   };
 }
 
 /**
  * Gemini API を呼び出す。混雑などの一時的なエラーは待ってから再試行し、
- * それでも駄目なら次のモデルに切り替える。
- * 戻り値: { json: API の応答, model: 実際に使ったモデル名 }
+ * それでも駄目なら次のモデルに切り替える。時間がかかりすぎる場合は途中で打ち切る。
+ * 戻り値: { json: API の応答, model: 実際に使ったモデル名,
+ *          fallbackReason: 次のモデルに切り替えた理由（'busy' / 'model'。切り替えていなければ ''） }
  */
 function callGeminiWithRetry_(models, apiKey, payload) {
+  const deadline = Date.now() + GEMINI_TIME_BUDGET_MS;
   let lastStatus = 0;
   let lastMessage = '';
   let sawQuota = false;
+  let fallbackReason = '';
   for (let m = 0; m < models.length; m++) {
     const model = models[m];
     for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
-      if (attempt > 0) Utilities.sleep(RETRY_DELAYS_MS[attempt - 1]);
+      if (attempt > 0) {
+        const delay = RETRY_DELAYS_MS[attempt - 1];
+        if (Date.now() + delay >= deadline) break;  // 時間がなければ、このモデルの再試行はやめる
+        Utilities.sleep(delay);
+      } else if (m > 0 && Date.now() >= deadline) {
+        break;
+      }
 
       const { status, json } = fetchGemini_(model, apiKey, payload);
-      if (status === 200) return { json: json, model: model };
+      if (status === 200) return { json: json, model: model, fallbackReason: m > 0 ? fallbackReason : '' };
 
       lastStatus = status;
       lastMessage = geminiErrorMessage_(status, json);
@@ -153,11 +167,16 @@ function callGeminiWithRetry_(models, apiKey, payload) {
       if (RETRYABLE_STATUS.indexOf(status) === -1) {
         // 認証エラーやモデル名の誤りなどは、再試行しても直らない
         const code = classifyGeminiStatus_(status, lastMessage);
-        // 選んだモデルが存在しない場合だけは、予備モデルで続ける
-        if (code === 'model' && m < models.length - 1) break;
+        // 選んだモデルが存在しない場合だけは、予備モデルで続ける（そのことは画面で知らせる）
+        if (code === 'model' && m < models.length - 1) {
+          if (!fallbackReason) fallbackReason = 'model';
+          break;
+        }
         throw geminiError_(code, lastMessage);
       }
+      if (!fallbackReason) fallbackReason = 'busy';
     }
+    if (Date.now() >= deadline) break;
   }
   throw geminiError_(sawQuota ? 'quota' : 'busy', `HTTP ${lastStatus}: ${lastMessage}`);
 }
@@ -226,12 +245,14 @@ function normalizeEvent_(ev, tz) {
   let startTime = parseTime_(ev.startTime);
   let endTime = parseTime_(ev.endTime);
   if (!startTime) {
-    const evidenceTimes = extractTimes_(ev.timeEvidence);
-    if (evidenceTimes.length > 0) {
-      startTime = evidenceTimes[0];
-      // 「14:00〜16:00」のような範囲なら、2 つ目を終了時刻にする
-      if (!endTime && evidenceTimes.length > 1 && /[〜~\-－–—]/.test(ev.timeEvidence)) {
-        endTime = evidenceTimes[1];
+    const evidence = findTimes_(ev.timeEvidence);
+    if (evidence.matches.length > 0) {
+      startTime = evidence.matches[0].time;
+      // 「14:00〜16:00」「14時～16時」「14時から16時」のように、最初の 2 つの時刻が
+      // 範囲の記号だけでつながっているときは、2 つ目を終了時刻にする
+      if (!endTime && evidence.matches.length > 1) {
+        const between = evidence.text.slice(evidence.matches[0].end, evidence.matches[1].start);
+        if (TIME_RANGE_SEPARATOR_RE.test(between)) endTime = evidence.matches[1].time;
       }
     }
   }
@@ -245,7 +266,7 @@ function normalizeEvent_(ev, tz) {
     start = Utilities.parseDate(ev.startDate, tz, 'yyyy-MM-dd');
     end = Utilities.parseDate(endDate, tz, 'yyyy-MM-dd');
     if (end < start) end = start;
-    end = new Date(end.getTime() + DAY_MS); // 終日予定の終了日は「翌日」を指定する
+    end = addDays_(end, 1, tz); // 終日予定の終了日は「翌日」を指定する
   } else {
     start = Utilities.parseDate(`${ev.startDate} ${startTime}`, tz, 'yyyy-MM-dd HH:mm');
     end = endTime
@@ -269,6 +290,9 @@ function toHalfWidthAlnum_(text) {
   return text.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
 }
 
+// 2 つの時刻の間がこれだけなら範囲とみなす（NFKC 後なので全角の「～」「－」は半角になっている）
+const TIME_RANGE_SEPARATOR_RE = /^\s*(?:[〜~\-–—―]|から|to)\s*$/i;
+
 /** 文字列の先頭にある時刻を「HH:mm」で返す。読み取れなければ null */
 function parseTime_(text) {
   return extractTimes_(text)[0] || null;
@@ -280,10 +304,18 @@ function parseTime_(text) {
  * 「3時間」のような時間の長さは時刻として扱わない。
  */
 function extractTimes_(text) {
-  if (!text) return [];
+  return findTimes_(text).matches.map((m) => m.time);
+}
+
+/**
+ * extractTimes_ の本体。NFKC で正規化した文字列と、その中で見つかった時刻の位置を返す。
+ * 戻り値: { text: 正規化した文字列, matches: [{ time: 'HH:mm', start, end }] }
+ */
+function findTimes_(text) {
+  if (!text) return { text: '', matches: [] };
   const s = String(text).normalize('NFKC');
   const re = /(午前|午後|\b(?:am|pm|a\.m\.|p\.m\.))?\s*(?<!\d)(\d{1,2})(?:\s*:\s*(\d{2})(?::\d{2})?|\s*時(?!間)\s*(?:(\d{1,2})\s*分|(半))?)\s*(?:(am|pm|a\.m\.|p\.m\.)\b)?/gi;
-  const times = [];
+  const matches = [];
   let m;
   while ((m = re.exec(s)) !== null) {
     let hour = Number(m[2]);
@@ -297,7 +329,11 @@ function extractTimes_(text) {
       if (hour === 12) hour = 0;
     }
     if (hour > 23 || minute > 59) continue;
-    times.push(('0' + hour).slice(-2) + ':' + ('0' + minute).slice(-2));
+    matches.push({
+      time: ('0' + hour).slice(-2) + ':' + ('0' + minute).slice(-2),
+      start: m.index,
+      end: m.index + m[0].length,
+    });
   }
-  return times;
+  return { text: s, matches: matches };
 }

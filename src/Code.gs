@@ -18,7 +18,6 @@
  *   GEMINI_MODEL   … 利用者が選んだモデル名
  */
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
 // 公開用のページ（GitHub Pages: リポジトリの docs/）。日本語版は /ja/ 以下
@@ -41,7 +40,7 @@ const DEFAULT_MODEL = 'gemini-flash-latest';
 // Gemini の抽出結果と、登録待ちの候補を保持する秒数（CacheService の上限は 6 時間）
 const CACHE_TTL_SEC = 6 * 60 * 60;
 // 抽出のしかた（プロンプトや時刻の読み取り）を変えたら上げ、古いキャッシュを使わないようにする
-const EXTRACT_VERSION = 'v5';
+const EXTRACT_VERSION = 'v6';
 
 const PROP_API_KEY = 'GEMINI_API_KEY';
 const PROP_MODEL = 'GEMINI_MODEL';
@@ -103,11 +102,14 @@ function onRegisterEvents(e) {
     }
   });
 
-  // 二重登録を防ぐため、登録後は候補を破棄する
-  cache.remove(pendingKey_(messageId));
+  // 二重登録を防ぐため、1 件でも登録したら候補を破棄する（すべて失敗したときは、そのまま再試行できるよう残す）
+  if (created.length > 0) cache.remove(pendingKey_(messageId));
 
+  const notice = created.length === 0 ? t_('addFailedAll')
+    : failed.length > 0 ? t_('addedPartial', { count: created.length, failed: failed.length })
+    : t_('addedCount', { count: created.length });
   return CardService.newActionResponseBuilder()
-    .setNotification(CardService.newNotification().setText(t_('addedCount', { count: created.length })))
+    .setNotification(CardService.newNotification().setText(notice))
     .setNavigation(CardService.newNavigation().updateCard(buildResultCard_(created, failed, tz)))
     .build();
 }
@@ -210,7 +212,7 @@ function buildExtractionCard_(messageId, forceRefresh) {
   const model = getSelectedModel_();
   const key = extractedKey_(messageId, model);
 
-  let result = null;  // { events, usedModel }
+  let result = null;  // { events, usedModel, fallbackReason }
   const cached = forceRefresh ? null : cache.get(key);
   if (cached) {
     result = JSON.parse(cached);
@@ -220,6 +222,7 @@ function buildExtractionCard_(messageId, forceRefresh) {
       result = {
         events: extracted.events.map((ev) => normalizeEvent_(ev, tz)).filter(Boolean),
         usedModel: extracted.usedModel,
+        fallbackReason: extracted.fallbackReason,
       };
     } catch (err) {
       console.error(err);
@@ -242,9 +245,10 @@ function buildExtractionCard_(messageId, forceRefresh) {
   }
 
   cache.put(pendingKey_(messageId), JSON.stringify(events), CACHE_TTL_SEC);
-  // 選んだモデルが混雑していて予備モデルで抽出した場合は、そのことを表示する
+  // 選んだモデルが混雑していた・見つからなかったために予備モデルで抽出した場合は、そのことを表示する
   const note = result.usedModel !== model
-    ? t_('fallbackNote', { selected: modelDisplayName_(model), used: modelDisplayName_(result.usedModel) })
+    ? t_(result.fallbackReason === 'model' ? 'fallbackNoteUnavailable' : 'fallbackNote',
+      { selected: modelDisplayName_(model), used: modelDisplayName_(result.usedModel) })
     : '';
   return buildEventsCard_(messageId, events, tz, note);
 }
