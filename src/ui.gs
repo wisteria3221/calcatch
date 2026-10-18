@@ -201,20 +201,18 @@ function buildSettingsCard_(messageId) {
     .addSection(keySection)
     .addSection(modelSection);
 
-  const about = buildAboutSection_();
-  if (about) card.addSection(about);
+  card.addSection(buildAboutSection_());
 
   return card.setFixedFooter(CardService.newFixedFooter().setPrimaryButton(saveButton)).build();
 }
 
-/** ホームページ・プライバシーポリシー・利用規約へのリンク（URL が決まっているものだけ） */
+/** ホームページ・プライバシーポリシー・利用規約へのリンク */
 function buildAboutSection_() {
   const links = [
-    [t_('homepage'), HOMEPAGE_URL],
-    [t_('privacyPolicy'), PRIVACY_POLICY_URL],
-    [t_('terms'), TERMS_URL],
-  ].filter(([, url]) => !!url);
-  if (!links.length) return null;
+    [t_('homepage'), siteUrl_('')],
+    [t_('privacyPolicy'), siteUrl_('privacy.html')],
+    [t_('terms'), siteUrl_('terms.html')],
+  ];
   const section = CardService.newCardSection().setHeader(t_('aboutSection'));
   links.forEach(([label, url]) => section.addWidget(CardService.newTextButton()
     .setText(label)

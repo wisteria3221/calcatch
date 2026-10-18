@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CalCatch – Add events from your email to Google Calendar</title>
+  <meta name="description" content="CalCatch is a Gmail add-on that finds events written in an email with Gemini and adds them to Google Calendar.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="alternate" hreflang="ja" href="https://calcatch.wisteria.xyz/ja/">
+</head>
+<body>
+  <header>
+    <a class="brand" href="./">CalCatch</a>
+    <nav>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms</a>
+      <a href="ja/" lang="ja">日本語</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Catch the events in your email, add them to Google Calendar.</h1>
+    <p class="lead">CalCatch is a Gmail add-on. Open an email and it reads the dates, times and places written in it with Gemini, so you can add them to Google Calendar in one step.</p>
+
+    <ul class="features">
+      <li><strong>Reads the email for you</strong>Event title, date, time, place and notes are extracted when you open an email.</li>
+      <li><strong>Avoids duplicates</strong>Events that look already registered in your calendar are flagged and left unchecked.</li>
+      <li><strong>You stay in control</strong>Nothing is added until you check the events you want and press “Add to Calendar”.</li>
+      <li><strong>Your own API key</strong>CalCatch calls the Gemini API with your own key. There is no CalCatch server.</li>
+    </ul>
+
+    <h2>How it works</h2>
+    <ol>
+      <li>Install CalCatch and open an email in Gmail.</li>
+      <li>CalCatch sends the email to the Gemini API with your API key and lists the events it found.</li>
+      <li>It checks your calendars for the same or similar events and warns you about possible duplicates.</li>
+      <li>Check the events you want and press <strong>Add to Calendar</strong>. Each event includes a link back to the original email.</li>
+    </ol>
+
+    <h2>Getting started</h2>
+    <ol>
+      <li>Create a Gemini API key in <a href="https://aistudio.google.com/apikey">Google AI Studio</a>.</li>
+      <li>In Gmail, open CalCatch from the side panel and choose <strong>Settings</strong> from the add-on menu.</li>
+      <li>Paste your API key and save. You can also choose the Gemini model (Standard, Lite, Pro, or a model name of your choice).</li>
+    </ol>
+    <p class="note">Gemini API usage is billed to the Google Cloud project that owns your API key. On the Gemini API free tier, content you send may be used to improve Google products. If that concerns you, use a key with billing enabled.</p>
+
+    <h2>Privacy</h2>
+    <p>CalCatch reads only the email you open and the events on your own calendars around the dates it finds. It does not run its own server and does not collect, sell, or share your data with the developer or anyone else. Email content is sent only to the Google Gemini API, using your own API key. See the <a href="privacy.html">Privacy Policy</a> for details.</p>
+
+    <h2>Support</h2>
+    <p>Questions and bug reports: <a href="https://github.com/wisteria3221/calcatch/issues">GitHub Issues</a>.<br>
+    Source code: <a href="https://github.com/wisteria3221/calcatch">github.com/wisteria3221/calcatch</a> (MIT License)</p>
+  </main>
+
+  <footer>
+    <nav>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="https://github.com/wisteria3221/calcatch">GitHub</a>
+    </nav>
+    © 2026 wisteria3221. Google, Gmail, Google Calendar and Gemini are trademarks of Google LLC. CalCatch is not affiliated with or endorsed by Google.
+  </footer>
+</body>
+</html>

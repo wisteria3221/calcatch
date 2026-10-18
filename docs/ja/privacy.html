@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>プライバシーポリシー – CalCatch</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="alternate" hreflang="en" href="https://calcatch.wisteria.xyz/privacy.html">
+</head>
+<body>
+  <header>
+    <a class="brand" href="./">CalCatch</a>
+    <nav>
+      <a href="privacy.html">プライバシーポリシー</a>
+      <a href="terms.html">利用規約</a>
+      <a href="../privacy.html" lang="en">English</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>プライバシーポリシー</h1>
+    <p class="meta">最終更新日：2026年10月18日</p>
+
+    <p>このプライバシーポリシーは、wisteria3221（以下「開発者」）が開発する Gmail アドオン CalCatch（以下「本アドオン」）が、どのようなデータにアクセスし、どのように利用・保存・共有するかを説明するものです。本アドオンは、あなたの Google アカウント内の Google Apps Script 上で動作します。開発者は本アドオンのためのサーバーを運用しておらず、あなたのデータを受け取ることはありません。</p>
+
+    <p class="note">本ページは英語版（<a href="../privacy.html">Privacy Policy</a>）の日本語訳です。内容に相違がある場合は英語版が優先されます。</p>
+
+    <h2>1. 本アドオンがアクセスするデータ</h2>
+    <table>
+      <tr><th>データ</th><th>アクセスする場面と目的</th><th>Google の権限（スコープ）</th></tr>
+      <tr>
+        <td>Gmail で開いているメール（本文、件名、差出人、受信日時）</td>
+        <td>本アドオンを表示した状態で開いたメールに限り、本文に書かれた予定を見つけるために読み取ります。</td>
+        <td><code>gmail.addons.current.message.readonly</code>、<code>gmail.addons.execute</code></td>
+      </tr>
+      <tr>
+        <td>メールで見つかった日付の前後にある、あなたが所有するカレンダーの予定（タイトル、日時、説明）</td>
+        <td>同じ予定や似た予定がすでに登録されている場合に知らせるために読み取ります。</td>
+        <td><code>calendar.events.owned</code></td>
+      </tr>
+      <tr>
+        <td>あなたが登録を選んだ予定</td>
+        <td>「カレンダーに登録」を押したときだけ、メインのカレンダーに作成します。</td>
+        <td><code>calendar.events.owned</code></td>
+      </tr>
+      <tr>
+        <td>カレンダーの一覧とタイムゾーン</td>
+        <td>所有しているカレンダーを把握し、日時をあなたのタイムゾーンで扱うために読み取ります。</td>
+        <td><code>calendar.calendarlist.readonly</code></td>
+      </tr>
+      <tr>
+        <td>Gmail の表示言語</td>
+        <td>本アドオンを日本語または英語で表示するために読み取ります。</td>
+        <td><code>script.locale</code></td>
+      </tr>
+    </table>
+    <p>また、Gemini API を呼び出すために <code>script.external_request</code> を使用します。</p>
+
+    <h2>2. データの利用目的</h2>
+    <p>上記のデータは、本アドオンの機能（開いているメールからの予定の抽出、重複の確認、選んだ予定のカレンダーへの登録）を提供するためだけに利用します。広告、プロファイリング、その他の目的には利用しません。</p>
+
+    <h2>3. Google Gemini API への送信</h2>
+    <p>予定を抽出するため、開いているメールの本文・件名・差出人・受信日時を、<strong>あなたが設定した Gemini API キー</strong>を使って Google の Gemini API（<code>generativelanguage.googleapis.com</code>）に送信します。この送信には、あなたの API キーに適用される Gemini API の利用規約が適用されます。Gemini API の無料枠では、送信した内容が Google のサービス改善に使われる場合があります。有料枠のキーでは使われません。用途に合ったキーをお選びください。</p>
+    <p>開発者やその他の第三者とデータを共有することはありません。</p>
+
+    <h2>4. データの保存と保存期間</h2>
+    <ul>
+      <li><strong>Gemini API キーとモデルの設定</strong>は、あなたの Google アカウントに属する Apps Script のユーザープロパティに保存され、他の利用者からはアクセスできません。保存後にキー全体が表示されることはありません。</li>
+      <li><strong>抽出した予定の候補</strong>は、同じメールを開き直したときにすばやく表示し、Gemini API を再度呼び出さずに済むよう、Apps Script のユーザーキャッシュに最大6時間保持し、その後自動的に削除されます。</li>
+      <li>メールの内容を本アドオンが保存することはありません。</li>
+      <li>登録した予定は、あなたが削除するまで Google カレンダーに残ります。</li>
+    </ul>
+
+    <h2>5. データの削除</h2>
+    <ul>
+      <li>API キーは<strong>「設定」→「API キーを削除」</strong>からいつでも削除できます。</li>
+      <li>本アドオンをアンインストールし、<a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a> からアクセス権を取り消すことができます。</li>
+      <li>キャッシュされた予定の候補は、6時間以内に自動的に削除されます。</li>
+    </ul>
+
+    <h2>6. 限定的使用（Limited Use）に関する開示</h2>
+    <p>本アドオンによる Google API から受け取った情報の利用および他のアプリへの転送は、<a href="https://developers.google.com/terms/api-services-user-data-policy">Google API サービスのユーザーデータに関するポリシー</a>（限定的使用の要件を含む）に従います。Google Workspace API を通じて取得した Google Workspace のユーザーデータを、汎用的な AI や機械学習モデルの開発・改善・学習に使用することはありません。</p>
+
+    <h2>7. セキュリティ</h2>
+    <p>Gemini API を含む Google のサービスとの通信は、すべて HTTPS で行われます。本アドオンのソースコードは <a href="https://github.com/wisteria3221/calcatch">github.com/wisteria3221/calcatch</a> で公開しています。</p>
+
+    <h2>8. 子どもの利用</h2>
+    <p>本アドオンは13歳未満の子どもを対象としておらず、子どもからデータを意図的に収集することはありません。</p>
+
+    <h2>9. 本ポリシーの変更</h2>
+    <p>本ポリシーを変更する場合は、最終更新日を改めたうえで、このページに掲載します。</p>
+
+    <h2>10. お問い合わせ</h2>
+    <p>本ポリシーに関するお問い合わせは、<a href="https://github.com/wisteria3221/calcatch/issues">GitHub Issues</a> からお願いします。</p>
+  </main>
+
+  <footer>
+    <nav>
+      <a href="./">ホーム</a>
+      <a href="terms.html">利用規約</a>
+      <a href="https://github.com/wisteria3221/calcatch">GitHub</a>
+    </nav>
+    © 2026 wisteria3221
+  </footer>
+</body>
+</html>

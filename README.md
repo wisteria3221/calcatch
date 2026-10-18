@@ -12,6 +12,8 @@ CalCatch is a Gmail add-on that finds events written in an email with Gemini and
 - Japanese and English UI (follows your Gmail language).
 
 > Status: in development. Not yet published on Google Workspace Marketplace.
+>
+> Website: https://calcatch.wisteria.xyz/ ([Privacy Policy](https://calcatch.wisteria.xyz/privacy.html) / [Terms](https://calcatch.wisteria.xyz/terms.html))
 
 ## Development
 
@@ -31,6 +33,7 @@ clasp push        # upload src/ to the Apps Script project
 | `src/calendar.gs` | Calendar API access and duplicate detection |
 | `src/ui.gs` | Card UI |
 | `src/i18n.gs` | Japanese / English strings |
+| `docs/` | Website (GitHub Pages): homepage, privacy policy, terms — English at `/`, Japanese at `/ja/` |
 
 Each user's Gemini API key and model choice are stored in their own User Properties. No API key is stored in this repository.
 
@@ -59,6 +62,8 @@ CalCatch は、メール本文に書かれた予定を Gemini で読み取り、
 - 画面は日本語と英語に対応しています（Gmail の表示言語に合わせます）。
 
 > 状態：開発中。Google Workspace Marketplace にはまだ公開していません。
+>
+> サイト：https://calcatch.wisteria.xyz/ja/ （[プライバシーポリシー](https://calcatch.wisteria.xyz/ja/privacy.html) / [利用規約](https://calcatch.wisteria.xyz/ja/terms.html)）
 
 ## 開発
 

@@ -21,10 +21,13 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
 
-// 公開用のページ。空のものは設定画面に表示しない
-const HOMEPAGE_URL = 'https://github.com/wisteria3221/calcatch';
-const PRIVACY_POLICY_URL = '';  // TODO: 独自ドメインに公開したら設定する
-const TERMS_URL = '';           // TODO: 独自ドメインに公開したら設定する
+// 公開用のページ（GitHub Pages: リポジトリの docs/）。日本語版は /ja/ 以下
+const SITE_URL = 'https://calcatch.wisteria.xyz/';
+
+/** 表示言語に合わせたサイトのページ URL（path は '' / 'privacy.html' / 'terms.html'） */
+function siteUrl_(path) {
+  return SITE_URL + (LOCALE === 'ja' ? 'ja/' : '') + path;
+}
 
 // 設定画面で選べるモデル。いずれも自動更新エイリアスなので、新しいモデルが出ても選択肢を直す必要はない
 const MODEL_CHOICES = [

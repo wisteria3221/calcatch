@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CalCatch – メールの予定を Google カレンダーへ</title>
+  <meta name="description" content="CalCatch は、メール本文に書かれた予定を Gemini で読み取り、Google カレンダーに登録する Gmail アドオンです。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="alternate" hreflang="en" href="https://calcatch.wisteria.xyz/">
+</head>
+<body>
+  <header>
+    <a class="brand" href="./">CalCatch</a>
+    <nav>
+      <a href="privacy.html">プライバシーポリシー</a>
+      <a href="terms.html">利用規約</a>
+      <a href="../" lang="en">English</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>メールの予定を見つけて、Google カレンダーへ。</h1>
+    <p class="lead">CalCatch は Gmail アドオンです。メールを開くと、本文に書かれた日時や場所を Gemini で読み取り、そのまま Google カレンダーに登録できます。</p>
+
+    <ul class="features">
+      <li><strong>本文から自動で読み取り</strong>メールを開くと、予定名・日時・場所・メモを抽出します。</li>
+      <li><strong>二重登録を防止</strong>カレンダーに登録済みと思われる予定には警告を表示し、チェックを外しておきます。</li>
+      <li><strong>登録は自分で決める</strong>登録したい予定にチェックを入れて「カレンダーに登録」を押すまで、何も登録されません。</li>
+      <li><strong>自分の API キーで動作</strong>Gemini API はあなた自身のキーで呼び出します。CalCatch 独自のサーバーはありません。</li>
+    </ul>
+
+    <h2>しくみ</h2>
+    <ol>
+      <li>CalCatch をインストールし、Gmail でメールを開きます。</li>
+      <li>CalCatch があなたの API キーでメールを Gemini API に送り、見つかった予定を一覧表示します。</li>
+      <li>カレンダーに同じ予定や似た予定がないかを確認し、重複の可能性があれば知らせます。</li>
+      <li>登録したい予定にチェックを入れて<strong>「カレンダーに登録」</strong>を押します。予定の説明欄には元のメールへのリンクが入ります。</li>
+    </ol>
+
+    <h2>はじめかた</h2>
+    <ol>
+      <li><a href="https://aistudio.google.com/apikey">Google AI Studio</a> で Gemini API キーを発行します。</li>
+      <li>Gmail のサイドパネルで CalCatch を開き、アドオンのメニューから<strong>「設定」</strong>を選びます。</li>
+      <li>API キーを貼り付けて保存します。Gemini のモデル（標準・軽量・高精度・任意のモデル名）も選べます。</li>
+    </ol>
+    <p class="note">Gemini API の料金は、API キーを発行した Google Cloud プロジェクトに請求されます。Gemini API の無料枠では、送信した内容が Google のサービス改善に使われる場合があります。気になる場合は、課金を有効にしたキーを使ってください。</p>
+
+    <h2>プライバシー</h2>
+    <p>CalCatch が読み取るのは、開いているメールと、見つかった日付の前後にあるあなた自身のカレンダーの予定だけです。独自のサーバーは持たず、データを収集・販売したり、開発者を含む第三者と共有したりしません。メールの内容は、あなた自身の API キーで Google の Gemini API にのみ送信されます。詳しくは<a href="privacy.html">プライバシーポリシー</a>をご覧ください。</p>
+
+    <h2>サポート</h2>
+    <p>ご質問・不具合の報告：<a href="https://github.com/wisteria3221/calcatch/issues">GitHub Issues</a><br>
+    ソースコード：<a href="https://github.com/wisteria3221/calcatch">github.com/wisteria3221/calcatch</a>（MIT ライセンス）</p>
+  </main>
+
+  <footer>
+    <nav>
+      <a href="privacy.html">プライバシーポリシー</a>
+      <a href="terms.html">利用規約</a>
+      <a href="https://github.com/wisteria3221/calcatch">GitHub</a>
+    </nav>
+    © 2026 wisteria3221. Google、Gmail、Google カレンダー、Gemini は Google LLC の商標です。CalCatch は Google と提携または Google が推奨するものではありません。
+  </footer>
+</body>
+</html>

@@ -1,0 +1,105 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --accent: #1a73e8;
+  --border: #d1d9e0;
+  --card: #f6f8fa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --fg: #e6edf3;
+    --muted: #9198a1;
+    --accent: #4493f8;
+    --border: #30363d;
+    --card: #151b23;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.75;
+}
+
+a { color: var(--accent); }
+
+header, main, footer {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+nav { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.95rem; }
+
+main { padding-top: 32px; padding-bottom: 48px; }
+
+h1 { font-size: 2rem; line-height: 1.3; margin: 0 0 12px; }
+h2 { font-size: 1.3rem; margin: 40px 0 12px; }
+h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+
+.lead { font-size: 1.1rem; color: var(--muted); margin: 0 0 24px; }
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.features li {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.features strong { display: block; margin-bottom: 4px; }
+
+.meta { color: var(--muted); font-size: 0.9rem; }
+
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: var(--card); }
+td code { word-break: break-all; }
+
+.note {
+  background: var(--card);
+  border-left: 4px solid var(--accent);
+  padding: 12px 16px;
+  border-radius: 4px;
+}
+
+footer {
+  padding-top: 20px;
+  padding-bottom: 32px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+footer nav { margin-bottom: 8px; }
