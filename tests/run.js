@@ -160,7 +160,7 @@ res = call('onSaveSettings', ev('ja', { commonEventObject: { userLocale: 'ja', f
 ok(state.userProps._m.GEMINI_API_KEY === 'GOODKEY1234', 'valid key saved (trimmed)');
 ok(cardText(res).includes('popToRoot') && cardText(res).includes('見つかった予定'), 'after save → back to extraction card');
 // allDay=true でも根拠に時刻があれば時刻付きになる
-ok(cardText(res).includes('2026/10/25 14:00 – 16:00'), 'time recovered from evidence (14:00–16:00), ja format');
+ok(cardText(res).includes('2026/10/25（日）14:00 – 16:00'), 'time recovered from evidence (14:00–16:00), ja format with weekday');
 ok(state.fetchLog[0].key === 'BADKEY' && state.fetchLog.slice(1).every((f) => f.key === 'GOODKEY1234'), 'Gemini called with the key being validated, then the saved user key');
 
 // 6. 既存予定と重複 → 警告とチェックオフ
@@ -168,7 +168,7 @@ state.calendarEvents = [{ summary: '勉強会', start: { dateTime: '2026-10-25T1
 card = call('onGmailMessageOpen', ev('en-US'));
 const t = cardText(card);
 ok(t.includes('Probably already in your calendar') && t.includes('setSelected(false)'), 'duplicate warned and unchecked (en)');
-ok(t.includes('Oct 25, 2026 2:00 PM – 4:00 PM'), 'en date format');
+ok(t.includes('Sun, Oct 25, 2026, 2:00 PM – 4:00 PM'), 'en date format with weekday');
 const callsBefore = state.fetchLog.length;
 ok(true, `cached: Gemini calls so far ${callsBefore}`);
 call('onGmailMessageOpen', ev('ja'));
@@ -222,6 +222,38 @@ card = call('onOpenSettings', ev('ja'));
 ok(cardText(card).includes('https://calcatch.wisteria.xyz/ja/privacy.html') && cardText(card).includes('https://calcatch.wisteria.xyz/ja/terms.html'), 'settings links → Japanese pages (ja)');
 card = call('onOpenSettings', ev('en-US'));
 ok(cardText(card).includes('https://calcatch.wisteria.xyz/privacy.html') && !cardText(card).includes('/ja/'), 'settings links → English pages (en)');
+
+// 14. 日時の表示（曜日つき・終日・日をまたぐ予定）
+const fmtRange = (locale, range) => { sandbox.__r = range; return vm.runInContext(`setLocale_({ commonEventObject: { userLocale: '${locale}' } }); formatRange_(__r, 'Asia/Tokyo')`, sandbox); };
+const allDay1 = { allDay: true, start: '2026-10-24T15:00:00Z', end: '2026-10-25T15:00:00Z' };          // 10/25（日）
+const allDay3 = { allDay: true, start: '2026-10-24T15:00:00Z', end: '2026-10-27T15:00:00Z' };          // 10/25（日）〜10/27（火）
+const overnight = { allDay: false, start: '2026-10-25T13:00:00Z', end: '2026-10-26T01:00:00Z' };      // 10/25 22:00 〜 10/26 10:00
+ok(fmtRange('ja', allDay1) === '2026/10/25（日）終日', `all-day (ja): ${fmtRange('ja', allDay1)}`);
+ok(fmtRange('ja', allDay3) === '2026/10/25（日） – 2026/10/27（火）終日', `multi-day all-day (ja): ${fmtRange('ja', allDay3)}`);
+ok(fmtRange('ja', overnight) === '2026/10/25（日）22:00 – 2026/10/26（月）10:00', `overnight (ja): ${fmtRange('ja', overnight)}`);
+ok(fmtRange('en', allDay1) === 'Sun, Oct 25, 2026 (all day)', `all-day (en): ${fmtRange('en', allDay1)}`);
+ok(fmtRange('en', allDay3) === 'Sun, Oct 25, 2026 – Tue, Oct 27, 2026 (all day)', `multi-day all-day (en): ${fmtRange('en', allDay3)}`);
+ok(fmtRange('en', overnight) === 'Sun, Oct 25, 2026, 10:00 PM – Mon, Oct 26, 2026, 10:00 AM', `overnight (en): ${fmtRange('en', overnight)}`);
+
+// 15. 全角英数字は半角にする（記号・全角スペース・かなはそのまま）
+sandbox.__ev = { title: 'ＭＴＧ（第２回）　Ａ会議室', startDate: '2026-10-25', allDay: true, location: 'ビル５Ｆ', description: 'ｚｏｏｍ ＩＤ：１２３' };
+const norm = vm.runInContext(`normalizeEvent_(__ev, 'Asia/Tokyo')`, sandbox);
+ok(norm.title === 'MTG（第2回）　A会議室', `half-width title: ${norm.title}`);
+ok(norm.location === 'ビル5F' && norm.description === 'zoom ID：123', `half-width location/notes: ${norm.location} / ${norm.description}`);
+
+// 16. 抽出結果カードの並び：予定名（チェック）→ 日時 → 場所 → 重複の警告 → メモ
+state.calendarEvents = [{ summary: '勉強会', start: { dateTime: '2026-10-25T14:00:00+09:00' }, end: { dateTime: '2026-10-25T16:00:00+09:00' }, description: '' }];
+state.geminiResponses.push(geminiOk([{ title: '勉強会', timeEvidence: '10月25日 14:00〜16:00', startDate: '2026-10-25', allDay: false, startTime: '14:00', endTime: '16:00', location: '渋谷', description: '資料は当日配布' }]));
+card = call('onReextractEvents', ev('ja'));
+const widgets = dump(card).split('CardSection{').find((d) => d.includes('資料は当日配布')) || '';
+const pos = ['<b>勉強会</b>', 'Icon.CLOCK', 'Icon.MAP_PIN', '登録済みの可能性が高い', 'Icon.DESCRIPTION'].map((k) => widgets.indexOf(k));
+ok(pos.every((p) => p >= 0) && pos.every((p, i) => i === 0 || p > pos[i - 1]), `event section order title→when→where→warning→notes ${pos.join(',')}`);
+const titleRow = widgets.slice(0, widgets.indexOf('Icon.CLOCK'));
+ok(titleRow.includes('setSwitchControl') && titleRow.includes('setSelected(false)'), 'checkbox is on the title row (unchecked for duplicate)');
+ok(!widgets.startsWith('setHeader'), 'no section header (title is in the body)');
+ok(widgets.includes('setIconUrl(https://calcatch.wisteria.xyz/images/warning.png)') && !widgets.includes('⚠'), 'warning row has red warning icon (no ⚠ in text)');
+ok(widgets.includes('<font color="#d93025">2026/10/25（日）14:00 – 16:00</font>') && !widgets.includes('setBottomLabel'), 'existing event date shown in red in the text');
+ok(widgets.includes('setAltText(日時)') && widgets.includes('setAltText(場所)') && widgets.includes('setAltText(メモ)'), 'icons have alt text from labels');
 
 const total = (process.exitCode === 1) ? 'FAILED' : 'ALL PASSED';
 console.log(`\n${total}`);

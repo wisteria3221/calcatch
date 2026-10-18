@@ -52,46 +52,45 @@ function buildEventsCard_(messageId, events, tz, note) {
       .addWidget(CardService.newTextParagraph().setText(muted_(note))));
   }
 
+  // 並び：予定名（登録のチェック）→ 日時 → 場所 → 重複の警告 → メモ。
+  // 警告は既存の予定の日時を出すので、すぐ上の日時と見比べられる位置に置く。
+  // メモは判断にほとんど使わない補足なので、灰色にして最後に置く
   events.forEach((ev, i) => {
-    const section = CardService.newCardSection().setHeader(`${i + 1}. ${ev.title}`);
+    const section = CardService.newCardSection();
 
-    // 重複の警告は、色付きの太字で一番上に出す。違いは文言で伝える
-    if (ev.existing) {
-      const label = ev.existing.level === 'same' ? t_('warnSame') : t_('warnSimilar');
-      section.addWidget(CardService.newDecoratedText()
-        .setText(
-          `<font color="${WARNING_COLOR}"><b>${escapeHtml_(label)}</b></font><br>` +
-          `<font color="${WARNING_COLOR}">${escapeHtml_(ev.existing.title)}</font>`
-        )
-        .setBottomLabel(formatRange_(ev.existing, tz))
-        .setWrapText(true));
-    }
-
+    // 予定名と登録のチェックを同じ行に。既存の予定と重複しそうなものは最初からオフにする
     section.addWidget(CardService.newDecoratedText()
-      .setTopLabel(t_('labelWhen'))
-      .setText(escapeHtml_(formatRange_(ev, tz)))
-      .setWrapText(true));
-    if (ev.location) {
-      section.addWidget(CardService.newDecoratedText()
-        .setTopLabel(t_('labelWhere'))
-        .setText(escapeHtml_(ev.location))
-        .setWrapText(true));
-    }
-    if (ev.description) {
-      section.addWidget(CardService.newDecoratedText()
-        .setTopLabel(t_('labelNotes'))
-        .setText(escapeHtml_(ev.description))
-        .setWrapText(true));
-    }
-
-    // 候補ごとの登録チェック。既存の予定と重複しそうなものは最初からオフにする
-    section.addWidget(CardService.newDecoratedText()
-      .setText(`<b>${escapeHtml_(t_('addThis'))}</b>`)
+      .setText(`<b>${escapeHtml_(ev.title)}</b>`)
+      .setWrapText(true)
       .setSwitchControl(CardService.newSwitch()
         .setControlType(CardService.SwitchControlType.CHECK_BOX)
         .setFieldName(selectFieldName_(i))
         .setValue('on')
         .setSelected(!ev.existing)));
+
+    section.addWidget(iconText_(CardService.Icon.CLOCK, t_('labelWhen'), escapeHtml_(formatRange_(ev, tz))));
+    if (ev.location) {
+      section.addWidget(iconText_(CardService.Icon.MAP_PIN, t_('labelWhere'), escapeHtml_(ev.location)));
+    }
+
+    // 重複の警告は赤。違いは文言で伝える
+    if (ev.existing) {
+      const label = ev.existing.level === 'same' ? t_('warnSame') : t_('warnSimilar');
+      // 標準のアイコンに警告の絵柄がないため、サイトに置いた赤いアイコンを使う。
+      // 既存の予定の日時も赤で本文に入れる（bottomLabel は色を付けられない）
+      section.addWidget(CardService.newDecoratedText()
+        .setStartIcon(CardService.newIconImage().setIconUrl(SITE_URL + 'images/warning.png').setAltText(label))
+        .setText(
+          `<font color="${WARNING_COLOR}"><b>${escapeHtml_(label)}</b></font><br>` +
+          `<font color="${WARNING_COLOR}">${escapeHtml_(ev.existing.title)}</font><br>` +
+          `<font color="${WARNING_COLOR}">${escapeHtml_(formatRange_(ev.existing, tz))}</font>`
+        )
+        .setWrapText(true));
+    }
+
+    if (ev.description) {
+      section.addWidget(iconText_(CardService.Icon.DESCRIPTION, t_('labelNotes'), muted_(ev.description)));
+    }
 
     card.addSection(section);
   });
@@ -242,24 +241,48 @@ function buildOpenSettingsButton_(messageId) {
 // 表示用のユーティリティ
 // ---------------------------------------------------------------------------
 
-/** 予定の日時を、表示言語に合わせた書式で返す。range は { allDay, start, end }（ISO 文字列） */
+/**
+ * 予定の日時を、表示言語に合わせた書式で曜日つきで返す。range は { allDay, start, end }（ISO 文字列）
+ * 例：2026/10/25（日）14:00 – 16:00 ／ Sun, Oct 25, 2026, 2:00 PM – 4:00 PM
+ */
 function formatRange_(range, tz) {
   const start = new Date(range.start);
   const end = new Date(range.end);
-  const fmt = LOCALE === 'ja'
-    ? { date: 'yyyy/MM/dd', time: 'HH:mm', dateTime: 'yyyy/MM/dd HH:mm' }
-    : { date: 'MMM d, yyyy', time: 'h:mm a', dateTime: 'MMM d, yyyy h:mm a' };
-  const allDayLabel = LOCALE === 'ja' ? `（${t_('allDay')}）` : ` (${t_('allDay')})`;
+  const ja = LOCALE === 'ja';
+  const date = (d) => ja
+    ? `${Utilities.formatDate(d, tz, 'yyyy/MM/dd')}（${weekdayName_(d, tz)}）`
+    : `${weekdayName_(d, tz)}, ${Utilities.formatDate(d, tz, 'MMM d, yyyy')}`;
+  const time = (d) => Utilities.formatDate(d, tz, ja ? 'HH:mm' : 'h:mm a');
+  const dateTime = (d) => date(d) + (ja ? '' : ', ') + time(d);
 
   if (range.allDay) {
     const lastDay = new Date(end.getTime() - DAY_MS);
-    const s = Utilities.formatDate(start, tz, fmt.date);
-    const e = Utilities.formatDate(lastDay, tz, fmt.date);
-    return (s === e ? s : `${s} – ${e}`) + allDayLabel;
+    const s = date(start);
+    const e = date(lastDay);
+    const days = s === e ? s : `${s} – ${e}`;
+    return ja ? days + t_('allDay') : `${days} (${t_('allDay')})`;
   }
   const sameDay = Utilities.formatDate(start, tz, 'yyyyMMdd') === Utilities.formatDate(end, tz, 'yyyyMMdd');
-  return Utilities.formatDate(start, tz, fmt.dateTime) + ' – ' +
-    Utilities.formatDate(end, tz, sameDay ? fmt.time : fmt.dateTime);
+  return dateTime(start) + ' – ' + (sameDay ? time(end) : dateTime(end));
+}
+
+const WEEKDAY_NAMES = {
+  ja: ['日', '月', '火', '水', '木', '金', '土'],
+  en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+};
+
+/** 曜日名。Utilities.formatDate の曜日は英語固定なので、日付から自前で求める */
+function weekdayName_(d, tz) {
+  const [y, m, day] = Utilities.formatDate(d, tz, 'yyyy-MM-dd').split('-').map(Number);
+  return WEEKDAY_NAMES[LOCALE === 'ja' ? 'ja' : 'en'][new Date(Date.UTC(y, m - 1, day)).getUTCDay()];
+}
+
+/** 先頭にアイコンを付けた 1 行。label はアイコンの代替テキスト（読み上げ用） */
+function iconText_(icon, label, html) {
+  return CardService.newDecoratedText()
+    .setStartIcon(CardService.newIconImage().setIcon(icon).setAltText(label))
+    .setText(html)
+    .setWrapText(true);
 }
 
 /** 灰色の補足テキスト（改行は <br> にする） */

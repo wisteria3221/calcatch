@@ -41,7 +41,7 @@ const DEFAULT_MODEL = 'gemini-flash-latest';
 // Gemini の抽出結果と、登録待ちの候補を保持する秒数（CacheService の上限は 6 時間）
 const CACHE_TTL_SEC = 6 * 60 * 60;
 // 抽出のしかた（プロンプトや時刻の読み取り）を変えたら上げ、古いキャッシュを使わないようにする
-const EXTRACT_VERSION = 'v4';
+const EXTRACT_VERSION = 'v5';
 
 const PROP_API_KEY = 'GEMINI_API_KEY';
 const PROP_MODEL = 'GEMINI_MODEL';

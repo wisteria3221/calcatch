@@ -255,13 +255,18 @@ function normalizeEvent_(ev, tz) {
   }
 
   return {
-    title: String(ev.title).trim(),
+    title: toHalfWidthAlnum_(String(ev.title).trim()),
     allDay: allDay,
     start: start.toISOString(),
     end: end.toISOString(),
-    location: ev.location ? String(ev.location).trim() : '',
-    description: ev.description ? String(ev.description).trim() : '',
+    location: ev.location ? toHalfWidthAlnum_(String(ev.location).trim()) : '',
+    description: ev.description ? toHalfWidthAlnum_(String(ev.description).trim()) : '',
   };
+}
+
+/** 全角の英数字（Ａ–Ｚ・ａ–ｚ・０–９）を半角にする。記号や全角スペースは日本語の文に自然なのでそのまま */
+function toHalfWidthAlnum_(text) {
+  return text.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
 }
 
 /** 文字列の先頭にある時刻を「HH:mm」で返す。読み取れなければ null */
