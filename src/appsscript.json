@@ -2,24 +2,45 @@
   "timeZone": "Asia/Tokyo",
   "runtimeVersion": "V8",
   "exceptionLogging": "STACKDRIVER",
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "Calendar",
+        "serviceId": "calendar",
+        "version": "v3"
+      }
+    ]
+  },
   "oauthScopes": [
     "https://www.googleapis.com/auth/gmail.addons.execute",
     "https://www.googleapis.com/auth/gmail.addons.current.message.readonly",
-    "https://www.googleapis.com/auth/calendar",
-    "https://www.googleapis.com/auth/script.external_request"
+    "https://www.googleapis.com/auth/calendar.events.owned",
+    "https://www.googleapis.com/auth/calendar.calendarlist.readonly",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.locale"
   ],
   "urlFetchWhitelist": [
     "https://generativelanguage.googleapis.com/"
   ],
   "addOns": {
     "common": {
-      "name": "メールから予定登録",
+      "name": "CalCatch",
       "logoUrl": "https://www.gstatic.com/images/icons/material/system/1x/event_black_48dp.png",
+      "useLocaleFromApp": true,
+      "homepageTrigger": {
+        "runFunction": "onHomepage"
+      },
       "universalActions": [
         {
-          "label": "設定",
+          "label": "Settings / 設定",
           "runFunction": "onOpenSettings"
         }
+      ],
+      "openLinkUrlPrefixes": [
+        "https://aistudio.google.com/",
+        "https://calendar.google.com/",
+        "https://www.google.com/calendar/",
+        "https://github.com/wisteria3221/"
       ]
     },
     "gmail": {
